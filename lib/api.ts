@@ -1,4 +1,4 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7010/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5201/api';
 
 export const getAuthHeaders = () => {
   const token = getAuthToken();
@@ -17,8 +17,15 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || 'Login failed');
+      const errorText = await response.text();
+      let errorMessage = 'Login failed';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -32,8 +39,15 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(JSON.stringify(error) || 'Registration failed');
+      const errorText = await response.text();
+      let errorMessage = 'Registration failed';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = JSON.stringify(errorData) || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -565,9 +579,11 @@ export const purchaseOrderDetailsApi = {
   },
 };
 
-export const setAuthToken = (token: string) => {
+export const setAuthData = (data: { token: string; role?: string; fullName?: string }) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('token', token);
+    localStorage.setItem('token', data.token);
+    if (data.role) localStorage.setItem('userRole', data.role);
+    if (data.fullName) localStorage.setItem('fullName', data.fullName);
   }
 };
 
@@ -578,8 +594,263 @@ export const getAuthToken = () => {
   return null;
 };
 
+export const getUserRole = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('userRole') || 'User';
+  }
+  return 'User';
+};
+
+export const getUserFullName = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('fullName') || 'Unknown User';
+  }
+  return 'Unknown User';
+};
+
+export const purchaseRequisitionsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/PurchaseRequisitions`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch purchase requisitions');
+    return response.json();
+  },
+  getById: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/PurchaseRequisitions/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch purchase requisition');
+    return response.json();
+  },
+  create: async (pr: any) => {
+    const response = await fetch(`${API_BASE_URL}/PurchaseRequisitions`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(pr),
+    });
+    if (!response.ok) throw new Error('Failed to create purchase requisition');
+    return response.json();
+  },
+  update: async (id: number, pr: any) => {
+    const response = await fetch(`${API_BASE_URL}/PurchaseRequisitions/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(pr),
+    });
+    if (!response.ok) throw new Error('Failed to update purchase requisition');
+    return response;
+  },
+  delete: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/PurchaseRequisitions/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete purchase requisition');
+    return response;
+  },
+};
+
+export const grnsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/GRNs`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch GRNs');
+    return response.json();
+  },
+  getById: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/GRNs/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch GRN');
+    return response.json();
+  },
+  create: async (grn: any) => {
+    const response = await fetch(`${API_BASE_URL}/GRNs`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(grn),
+    });
+    if (!response.ok) throw new Error('Failed to create GRN');
+    return response.json();
+  },
+};
+
+export const deliveryNotesApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/DeliveryNotes`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch delivery notes');
+    return response.json();
+  },
+  create: async (note: any) => {
+    const response = await fetch(`${API_BASE_URL}/DeliveryNotes`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(note),
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create delivery note');
+    }
+    return response.json();
+  },
+};
+
+export const salesInvoicesApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/SalesInvoices`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch invoices');
+    return response.json();
+  },
+  getById: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/SalesInvoices/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch invoice');
+    return response.json();
+  },
+  create: async (invoice: any) => {
+    const response = await fetch(`${API_BASE_URL}/SalesInvoices`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(invoice),
+    });
+    if (!response.ok) throw new Error('Failed to create invoice');
+    return response.json();
+  },
+  delete: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/SalesInvoices/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete invoice');
+    return response;
+  },
+};
+
+export const stockAdjustmentsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/StockAdjustments`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch stock adjustments');
+    return response.json();
+  },
+  create: async (adj: any) => {
+    const response = await fetch(`${API_BASE_URL}/StockAdjustments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(adj),
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create stock adjustment');
+    }
+    return response.json();
+  },
+};
+
+export const stockTransfersApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/StockTransfers`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch stock transfers');
+    return response.json();
+  },
+  create: async (transfer: any) => {
+    const response = await fetch(`${API_BASE_URL}/StockTransfers`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(transfer),
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to initiate stock transfer');
+    }
+    return response.json();
+  },
+  update: async (id: number, transfer: any) => {
+    const response = await fetch(`${API_BASE_URL}/StockTransfers/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(transfer),
+    });
+    if (!response.ok) throw new Error('Failed to update stock transfer');
+    return response;
+  },
+};
+
 export const logout = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('fullName');
   }
+};
+
+export const dashboardApi = {
+  getStats: async () => {
+    const response = await fetch(`${API_BASE_URL}/Dashboard/stats`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch dashboard stats');
+    return response.json();
+  },
+  generateReorders: async () => {
+    const response = await fetch(`${API_BASE_URL}/Dashboard/generate-reorders`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to generate reorder drafts');
+    return response.json();
+  }
+};
+export const reportsApi = {
+  getReport: async (type: 'stock-summary' | 'low-stock' | 'sales-history' | 'purchase-history' | 'stock-ledger' | 'vat-sales-register' | 'vat-purchase-register' | 'fiscal-year-stock') => {
+    const response = await fetch(`${API_BASE_URL}/Reports/${type}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error(`Failed to fetch ${type} report`);
+    return response.json();
+  }
+};
+
+export const usersApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/Users`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch users');
+    return response.json();
+  },
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/Users/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch user');
+    return response.json();
+  },
+  updateRoles: async (id: string, roles: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/Users/${id}/roles`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(roles),
+    });
+    if (!response.ok) throw new Error('Failed to update roles');
+    return response;
+  },
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/Users/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete user');
+    return response;
+  },
 };

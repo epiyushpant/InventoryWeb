@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { authApi, setAuthToken } from '@/lib/api';
+import { authApi, setAuthData } from '@/lib/api';
 
 export default function LoginPage() {
     const [username, setUsername] = useState('');
@@ -16,7 +16,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         if (searchParams.get('registered')) {
-            setSuccess('Strategic account initialized. Please authenticate.');
+            setSuccess('Account created successfully. Please log in.');
         }
     }, [searchParams]);
 
@@ -27,10 +27,10 @@ export default function LoginPage() {
 
         try {
             const data = await authApi.login({ username, password });
-            setAuthToken(data.token);
+            setAuthData(data); // Stores token, role, and fullName
             router.push('/home');
         } catch (err: any) {
-            setError(err.message || 'Authentication sequence failed. Verify credentials.');
+            setError(err.message || 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);
         }
@@ -41,7 +41,7 @@ export default function LoginPage() {
             <div className="auth-card glass animate-fade">
                 <div style={{ marginBottom: '2.5rem' }}>
                     <h1 className="auth-title">Welcome Back</h1>
-                    <p className="auth-subtitle">Access the strategic inventory hub.</p>
+                    <p className="auth-subtitle">Log in to access the inventory system.</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -50,7 +50,7 @@ export default function LoginPage() {
                         <input
                             type="text"
                             className="form-input"
-                            placeholder="Operator identity"
+                            placeholder="Enter your username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
@@ -58,11 +58,11 @@ export default function LoginPage() {
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">Security Key</label>
+                        <label className="form-label">Password</label>
                         <input
                             type="password"
                             className="form-input"
-                            placeholder="••••••••"
+                            placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -87,14 +87,14 @@ export default function LoginPage() {
                         style={{ width: '100%', marginTop: '1.5rem', padding: '1rem' }}
                         disabled={loading}
                     >
-                        {loading ? 'Authenticating...' : 'Establish Session'}
+                        {loading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
                 <p style={{ marginTop: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    New operator?{' '}
+                    Don&apos;t have an account?
                     <Link href="/register" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-                        Initialize account
+                        Register here
                     </Link>
                 </p>
             </div>

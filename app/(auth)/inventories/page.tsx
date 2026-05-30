@@ -7,9 +7,11 @@ import LookupTable, { Column } from '@/components/LookupTable';
 interface Inventory {
     inventoryID: number;
     productID: number;
-    quantityInStock: number;
-    locationID?: number;
-    lastUpdated?: string;
+    quantityOnHand: number;
+    reservedQuantity: number;
+    availableQuantity: number;
+    locationID: number;
+    lastUpdated: string;
 }
 
 interface Product {
@@ -20,8 +22,9 @@ interface Product {
 
 interface Location {
     locationID: number;
-    name: string;
-    type: string;
+    warehouseName: string;
+    city: string;
+    country: string;
 }
 
 export default function InventoriesPage() {
@@ -34,7 +37,9 @@ export default function InventoriesPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [currentInventory, setCurrentInventory] = useState<Partial<Inventory>>({ 
         productID: 0, 
-        quantityInStock: 0, 
+        quantityOnHand: 0, 
+        reservedQuantity: 0,
+        availableQuantity: 0,
         locationID: 0 
     });
     const [showModal, setShowModal] = useState(false);
@@ -94,7 +99,9 @@ export default function InventoriesPage() {
             setShowModal(false);
             setCurrentInventory({ 
                 productID: products.length > 0 ? products[0].productID : 0, 
-                quantityInStock: 0, 
+                quantityOnHand: 0, 
+                reservedQuantity: 0,
+                availableQuantity: 0,
                 locationID: locations.length > 0 ? locations[0].locationID : 0 
             });
             setIsEditing(false);
@@ -126,7 +133,7 @@ export default function InventoriesPage() {
     const getLocationName = (id?: number) => {
         if (!id) return 'Not Specified';
         const loc = locations.find(l => l.locationID === id);
-        return loc ? loc.name : 'Unknown';
+        return loc ? `${loc.warehouseName} (${loc.city})` : 'Unknown';
     };
 
     const columns: Column<Inventory>[] = [
@@ -155,29 +162,20 @@ export default function InventoriesPage() {
             ),
         },
         {
-            header: 'Quantity In Stock',
+            header: 'Stock Quantities',
             render: (item) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span style={{
-                        fontSize: '1.1rem',
-                        fontWeight: 800,
-                        color: item.quantityInStock > 10 ? 'var(--secondary)' : 'var(--error)'
-                    }}>
-                        {item.quantityInStock}
-                    </span>
-                    <div style={{
-                        height: '6px',
-                        width: '60px',
-                        background: 'rgba(0,0,0,0.05)',
-                        borderRadius: '3px',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{
-                            height: '100%',
-                            width: `${Math.min(item.quantityInStock, 100)}%`,
-                            background: item.quantityInStock > 10 ? 'var(--secondary)' : 'var(--error)',
-                            boxShadow: `0 0 8px ${item.quantityInStock > 10 ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
-                        }}></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', minWidth: '300px' }}>
+                    <div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>On Hand</p>
+                        <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>{item.quantityOnHand}</p>
+                    </div>
+                    <div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Reserved</p>
+                        <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>{item.reservedQuantity}</p>
+                    </div>
+                    <div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Available</p>
+                        <p style={{ fontSize: '1rem', fontWeight: 700, color: item.availableQuantity > 0 ? 'var(--secondary)' : 'var(--error)', margin: 0 }}>{item.availableQuantity}</p>
                     </div>
                 </div>
             ),
@@ -202,7 +200,9 @@ export default function InventoriesPage() {
                     setIsEditing(false);
                     setCurrentInventory({ 
                         productID: products.length > 0 ? products[0].productID : 0, 
-                        quantityInStock: 0, 
+                        quantityOnHand: 0, 
+                        reservedQuantity: 0,
+                        availableQuantity: 0,
                         locationID: locations.length > 0 ? locations[0].locationID : 0 
                     });
                     setShowModal(true);
@@ -255,42 +255,57 @@ export default function InventoriesPage() {
                                 </select>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
-                                    <label className="form-label">Quantity In Stock</label>
+                                    <label className="form-label">On Hand</label>
                                     <input
                                         type="number"
                                         min="0"
                                         className="form-input"
-                                        placeholder="0"
                                         required
-                                        value={currentInventory.quantityInStock === undefined ? '' : currentInventory.quantityInStock}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            setCurrentInventory({ 
-                                                ...currentInventory, 
-                                                quantityInStock: val === '' ? 0 : parseInt(val) 
-                                            });
-                                        }}
+                                        value={currentInventory.quantityOnHand ?? 0}
+                                        onChange={(e) => setCurrentInventory({ ...currentInventory, quantityOnHand: parseInt(e.target.value) || 0 })}
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Location</label>
-                                    <select
+                                    <label className="form-label">Reserved</label>
+                                    <input
+                                        type="number"
+                                        min="0"
                                         className="form-input"
                                         required
-                                        value={currentInventory.locationID || 0}
-                                        onChange={(e) => setCurrentInventory({ ...currentInventory, locationID: parseInt(e.target.value) })}
-                                        style={{ appearance: 'none', backgroundImage: 'linear-gradient(45deg, transparent 50%, var(--primary) 50%), linear-gradient(135deg, var(--primary) 50%, transparent 50%)', backgroundPosition: 'calc(100% - 20px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
-                                    >
-                                        <option value={0} disabled>Select a Location</option>
-                                        {locations.map(l => (
-                                            <option key={l.locationID} value={l.locationID} style={{ background: 'var(--bg-dark)', color: 'var(--text-main)' }}>
-                                                {l.name} ({l.type})
-                                            </option>
-                                        ))}
-                                    </select>
+                                        value={currentInventory.reservedQuantity ?? 0}
+                                        onChange={(e) => setCurrentInventory({ ...currentInventory, reservedQuantity: parseInt(e.target.value) || 0 })}
+                                    />
                                 </div>
+                                <div className="form-group">
+                                    <label className="form-label">Available</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        className="form-input"
+                                        required
+                                        value={currentInventory.availableQuantity ?? 0}
+                                        onChange={(e) => setCurrentInventory({ ...currentInventory, availableQuantity: parseInt(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Location / Warehouse</label>
+                                <select
+                                    className="form-input"
+                                    required
+                                    value={currentInventory.locationID || 0}
+                                    onChange={(e) => setCurrentInventory({ ...currentInventory, locationID: parseInt(e.target.value) })}
+                                    style={{ appearance: 'none', backgroundImage: 'linear-gradient(45deg, transparent 50%, var(--primary) 50%), linear-gradient(135deg, var(--primary) 50%, transparent 50%)', backgroundPosition: 'calc(100% - 20px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
+                                >
+                                    <option value={0} disabled>Select a Warehouse</option>
+                                    {locations.map(l => (
+                                        <option key={l.locationID} value={l.locationID} style={{ background: 'var(--bg-dark)', color: 'var(--text-main)' }}>
+                                            {l.warehouseName} ({l.city})
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>

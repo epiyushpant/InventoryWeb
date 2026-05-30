@@ -3,26 +3,69 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { getAuthToken, logout } from '@/lib/api';
+import { getAuthToken, getUserRole, getUserFullName, logout } from '@/lib/api';
 
 const topLevelLinks = [
     { name: 'Dashboard', href: '/home' },
-    { name: 'Sales', href: '/sales' },
-    { name: 'Sales Details', href: '/sales-details' },
-    { name: 'Customers', href: '/customers' },
-    { name: 'Locations', href: '/locations' },
-    { name: 'Administration', href: '/admin' }
+    { name: 'Reports',   href: '/reports', roles: ['Admin', 'Accountant'] },
+    { name: 'Users',     href: '/users',   roles: ['Admin'] },
+    { name: 'Admin',     href: '/admin',   roles: ['Admin'] }
 ];
 
-const inventorySubLinks = [
-    { name: 'Products', href: '/products' },
+const masterControlLinks = [
     { name: 'Categories', href: '/categories' },
-    { name: 'Inventories', href: '/inventories' },
+    { name: 'Warehouses', href: '/locations' },
     { name: 'Suppliers', href: '/suppliers' },
-    { name: 'Purchase Orders', href: '/purchase-orders' },
-    { name: 'PO Details', href: '/purchase-order-details' },
-    { name: 'Stock Movements', href: '/stock-movements' },
+    { name: 'Customers', href: '/customers' },
+    { name: 'Products', href: '/products' }
 ];
+
+const inventoryControlLinks = [
+    { name: 'Inventory List', href: '/inventories' },
+    { name: 'Purchase Requisitions', href: '/purchase-requisitions' },
+    { name: 'Purchase Orders', href: '/purchase-orders' },
+    { name: 'Goods Received (GRN)', href: '/grns' }
+];
+
+const salesControlLinks = [
+    { name: 'Sales Orders', href: '/sales' },
+    { name: 'Delivery Notes', href: '/delivery-notes' },
+    { name: 'Sales Invoices', href: '/sales-invoices' }
+];
+
+const stockControlLinks = [
+    { name: 'Stock Adjustments', href: '/stock-adjustments' },
+    { name: 'Stock Transfers',   href: '/stock-transfers' },
+    { name: 'Stock Movements',   href: '/stock-movements' }
+];
+
+function NavGroup({ title, links, pathname }: { title: string; links: any[]; pathname: string }) {
+    return (
+        <div>
+            <div style={{ padding: '0.5rem 1rem 0.25rem', color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {title}
+            </div>
+            {links.map((link) => (
+                <Link
+                    key={link.href}
+                    href={link.href}
+                    style={{
+                        display: 'block',
+                        padding: '0.6rem 1rem',
+                        borderRadius: '10px',
+                        fontSize: '0.85rem',
+                        fontWeight: pathname === link.href ? 700 : 500,
+                        color: pathname === link.href ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
+                        background: pathname === link.href ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+                        transition: 'all 0.15s ease',
+                    }}
+                >
+                    {link.name}
+                </Link>
+            ))}
+        </div>
+    );
+}
 
 export default function AuthLayout({
     children,
@@ -30,7 +73,9 @@ export default function AuthLayout({
     children: React.ReactNode;
 }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [inventoryOpen, setInventoryOpen] = useState(false);
+    const [userRole, setUserRole] = useState('User');
+    const [userName, setUserName] = useState('User');
+    const [lookupOpen, setLookupOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -41,6 +86,8 @@ export default function AuthLayout({
             router.push('/login');
         } else {
             setIsAuthenticated(true);
+            setUserRole(getUserRole());
+            setUserName(getUserFullName());
         }
     }, [router]);
 
@@ -48,7 +95,7 @@ export default function AuthLayout({
     useEffect(() => {
         function handleClickOutside(e: MouseEvent) {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setInventoryOpen(false);
+                setLookupOpen(false);
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
@@ -57,7 +104,7 @@ export default function AuthLayout({
 
     // Close dropdown on route change
     useEffect(() => {
-        setInventoryOpen(false);
+        setLookupOpen(false);
     }, [pathname]);
 
     const handleLogout = () => {
@@ -65,7 +112,12 @@ export default function AuthLayout({
         router.push('/login');
     };
 
-    const isInventoryActive = inventorySubLinks.some(l => pathname === l.href);
+    const isLookupActive = [
+        ...masterControlLinks, 
+        ...inventoryControlLinks, 
+        ...salesControlLinks, 
+        ...stockControlLinks
+    ].some(l => pathname === l.href);
 
     if (!isAuthenticated) return null;
 
@@ -131,12 +183,12 @@ export default function AuthLayout({
                             {pathname === '/home' && activeBar}
                         </Link>
 
-                        {/* Inventory dropdown */}
+                        {/* Lookup dropdown */}
                         <div ref={dropdownRef} style={{ position: 'relative' }}>
                             <button
-                                onClick={() => setInventoryOpen(prev => !prev)}
+                                onClick={() => setLookupOpen(prev => !prev)}
                                 style={{
-                                    ...navLinkStyle(isInventoryActive),
+                                    ...navLinkStyle(isLookupActive),
                                     background: 'none',
                                     border: 'none',
                                     cursor: 'pointer',
@@ -146,18 +198,18 @@ export default function AuthLayout({
                                     fontFamily: 'inherit',
                                 }}
                             >
-                                Inventory
+                                Lookup
                                 <svg
                                     width="12" height="12" viewBox="0 0 12 12" fill="none"
                                     style={{
                                         transition: 'transform 0.25s ease',
-                                        transform: inventoryOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transform: lookupOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                                         opacity: 0.5
                                     }}
                                 >
                                     <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
-                                {isInventoryActive && activeBar}
+                                {isLookupActive && activeBar}
                             </button>
 
                             {/* Dropdown menu */}
@@ -165,70 +217,57 @@ export default function AuthLayout({
                                 position: 'absolute',
                                 top: 'calc(100% + 0.75rem)',
                                 left: '50%',
-                                transform: `translateX(-50%) scale(${inventoryOpen ? 1 : 0.95})`,
-                                minWidth: '200px',
-                                background: 'linear-gradient(135deg, rgba(12, 74, 110, 0.95), rgba(2, 132, 199, 0.95))',
+                                transform: `translateX(-50%) scale(${lookupOpen ? 1 : 0.95})`,
+                                minWidth: '560px',
+                                background: 'linear-gradient(135deg, rgba(12, 74, 110, 0.98), rgba(2, 132, 199, 0.98))',
                                 backdropFilter: 'blur(24px)',
-                                WebkitBackdropFilter: 'blur(24px)',
                                 border: '1px solid rgba(255, 255, 255, 0.2)',
                                 borderRadius: '16px',
-                                padding: '0.5rem',
-                                boxShadow: '0 20px 50px -10px rgba(2, 132, 199, 0.35), 0 4px 12px rgba(0, 0, 0, 0.1)',
-                                opacity: inventoryOpen ? 1 : 0,
-                                pointerEvents: inventoryOpen ? 'auto' as const : 'none' as const,
-                                transition: 'opacity 0.2s ease, transform 0.2s ease',
+                                padding: '1.25rem',
+                                boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.5)',
+                                opacity: lookupOpen ? 1 : 0,
+                                pointerEvents: lookupOpen ? 'auto' : 'none',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                 zIndex: 200,
+                                display: 'grid',
+                                gridTemplateColumns: '1fr 1fr',
+                                gap: '0.5rem 1.5rem',
                             }}>
-                                {inventorySubLinks.map((link) => (
-                                    <Link
-                                        key={link.href}
-                                        href={link.href}
-                                        style={{
-                                            display: 'block',
-                                            padding: '0.7rem 1rem',
-                                            borderRadius: '10px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: pathname === link.href ? 700 : 500,
-                                            color: pathname === link.href ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
-                                            background: pathname === link.href ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                                            transition: 'all 0.15s ease',
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            if (pathname !== link.href) {
-                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (pathname !== link.href) {
-                                                e.currentTarget.style.background = 'transparent';
-                                            }
-                                        }}
-                                    >
-                                        {link.name}
-                                    </Link>
-                                ))}
+                                <div>
+                                    <NavGroup title="Master Control" links={masterControlLinks} pathname={pathname} />
+                                    <div style={{ margin: '0.5rem 0', height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+                                    <NavGroup title="Sales Control" links={salesControlLinks} pathname={pathname} />
+                                </div>
+                                <div>
+                                    <NavGroup title="Inventory Control" links={inventoryControlLinks} pathname={pathname} />
+                                    <div style={{ margin: '0.5rem 0', height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+                                    <NavGroup title="Stock Control" links={stockControlLinks} pathname={pathname} />
+                                </div>
                             </div>
                         </div>
 
                         {/* Sales & Admin links */}
-                        {topLevelLinks.filter(l => l.href !== '/home').map((link) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                style={navLinkStyle(pathname === link.href)}
-                            >
-                                {link.name}
-                                {pathname === link.href && activeBar}
-                            </Link>
-                        ))}
+                        {topLevelLinks
+                            .filter(l => l.href !== '/home')
+                            .filter(l => !l.roles || l.roles.includes(userRole))
+                            .map((link) => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    style={navLinkStyle(pathname === link.href)}
+                                >
+                                    {link.name}
+                                    {pathname === link.href && activeBar}
+                                </Link>
+                            ))}
                     </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <div style={{ textAlign: 'right', display: 'none' }} className="responsive-hide-mobile">
-                        <p style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>System Active</p>
-                        <p style={{ fontSize: '0.7rem', color: 'var(--secondary)', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.3rem' }}>
-                            <span style={{ width: '6px', height: '6px', background: 'var(--secondary)', borderRadius: '50%' }}></span> Verified Session
+                    <div style={{ textAlign: 'right' }} className="responsive-hide-mobile">
+                        <p style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0, color: 'white' }}>{userName}</p>
+                        <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.3rem' }}>
+                            <span style={{ width: '6px', height: '6px', background: '#38bdf8', borderRadius: '50%' }}></span> {userRole}
                         </p>
                     </div>
                     <button

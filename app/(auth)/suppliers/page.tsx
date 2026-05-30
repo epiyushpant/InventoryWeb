@@ -13,36 +13,53 @@ interface Supplier {
     address?: string;
     city?: string;
     country?: string;
+    taxVatNumber?: string;
+    paymentTerms?: string;
+    isActive: boolean;
 }
 
 const columns: Column<Supplier>[] = [
     {
         header: 'Supplier Name',
-        render: (sup) => <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{sup.supplierName}</span>,
+        render: (sup) => (
+            <div>
+                <p style={{ fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{sup.supplierName}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Tax ID: {sup.taxVatNumber || 'N/A'}</p>
+            </div>
+        ),
     },
     {
-        header: 'Contact Person',
-        render: (sup) => <span>{sup.contactPerson || '-'}</span>,
+        header: 'Contact',
+        render: (sup) => (
+            <div>
+                <p style={{ fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>{sup.contactPerson || '-'}</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>{sup.phone}</p>
+            </div>
+        ),
     },
     {
-        header: 'Email',
-        render: (sup) => sup.email ? <code style={{ color: 'var(--primary)', fontWeight: 600 }}>{sup.email}</code> : <span style={{ opacity: 0.3 }}>-</span>,
+        header: 'Payment Terms',
+        render: (sup) => <span style={{ fontSize: '0.9rem' }}>{sup.paymentTerms || <span style={{ opacity: 0.3 }}>-</span>}</span>,
     },
     {
-        header: 'Phone',
-        render: (sup) => <span>{sup.phone || <span style={{ opacity: 0.3 }}>-</span>}</span>,
+        header: 'Location',
+        render: (sup) => <span style={{ fontSize: '0.9rem' }}>{sup.city}, {sup.country}</span>,
     },
     {
-        header: 'Address',
-        render: (sup) => <span>{sup.address || <span style={{ opacity: 0.3 }}>-</span>}</span>,
-    },
-    {
-        header: 'City',
-        render: (sup) => <span>{sup.city || <span style={{ opacity: 0.3 }}>-</span>}</span>,
-    },
-    {
-        header: 'Country',
-        render: (sup) => <span>{sup.country || <span style={{ opacity: 0.3 }}>-</span>}</span>,
+        header: 'Status',
+        render: (sup) => (
+            <span style={{
+                fontSize: '0.75rem',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '100px',
+                background: sup.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                color: sup.isActive ? 'var(--secondary)' : 'var(--error)',
+                fontWeight: 700,
+                border: sup.isActive ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+            }}>
+                {sup.isActive ? 'Active' : 'Inactive'}
+            </span>
+        ),
     },
 ];
 
@@ -59,7 +76,10 @@ export default function SuppliersPage() {
         phone: '',
         address: '',
         city: '',
-        country: ''
+        country: '',
+        taxVatNumber: '',
+        paymentTerms: '',
+        isActive: true
     });
     const [showModal, setShowModal] = useState(false);
 
@@ -88,7 +108,18 @@ export default function SuppliersPage() {
                 await suppliersApi.create(currentSupplier);
             }
             setShowModal(false);
-            setCurrentSupplier({ supplierName: '', contactPerson: '', email: '', phone: '', address: '', city: '', country: '' });
+            setCurrentSupplier({ 
+                supplierName: '', 
+                contactPerson: '', 
+                email: '', 
+                phone: '', 
+                address: '', 
+                city: '', 
+                country: '',
+                taxVatNumber: '',
+                paymentTerms: '',
+                isActive: true
+            });
             setIsEditing(false);
             await loadSuppliers();
         } catch (err: any) {
@@ -122,7 +153,18 @@ export default function SuppliersPage() {
                 addButtonLabel="Add New Supplier"
                 onAdd={() => {
                     setIsEditing(false);
-                    setCurrentSupplier({ supplierName: '', contactPerson: '', email: '', phone: '', address: '', city: '', country: '' });
+                    setCurrentSupplier({ 
+                supplierName: '', 
+                contactPerson: '', 
+                email: '', 
+                phone: '', 
+                address: '', 
+                city: '', 
+                country: '',
+                taxVatNumber: '',
+                paymentTerms: '',
+                isActive: true
+            });
                     setShowModal(true);
                 }}
                 columns={columns}
@@ -210,7 +252,7 @@ export default function SuppliersPage() {
                                     onChange={(e) => setCurrentSupplier({ ...currentSupplier, address: e.target.value })}
                                 />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
                                     <label className="form-label">City</label>
                                     <input
@@ -231,6 +273,40 @@ export default function SuppliersPage() {
                                         onChange={(e) => setCurrentSupplier({ ...currentSupplier, country: e.target.value })}
                                     />
                                 </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div className="form-group">
+                                    <label className="form-label">Tax / VAT Number</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g. VAT123456789"
+                                        value={currentSupplier.taxVatNumber}
+                                        onChange={(e) => setCurrentSupplier({ ...currentSupplier, taxVatNumber: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Payment Terms</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g. Net 30"
+                                        value={currentSupplier.paymentTerms}
+                                        onChange={(e) => setCurrentSupplier({ ...currentSupplier, paymentTerms: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                                <input
+                                    type="checkbox"
+                                    id="isActive"
+                                    style={{ width: '20px', height: '20px' }}
+                                    checked={currentSupplier.isActive}
+                                    onChange={(e) => setCurrentSupplier({ ...currentSupplier, isActive: e.target.checked })}
+                                />
+                                <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Supplier</label>
                             </div>
                             <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>
                                 <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => setShowModal(false)}>Cancel</button>

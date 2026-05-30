@@ -10,8 +10,8 @@ export interface Column<T> {
 export interface LookupTableProps<T> {
     title: string;
     subtitle: string;
-    addButtonLabel: string;
-    onAdd: () => void;
+    addButtonLabel?: string;
+    onAdd?: () => void;
     columns: Column<T>[];
     data: T[];
     keyField: keyof T;
@@ -20,8 +20,10 @@ export interface LookupTableProps<T> {
     loadingText?: string;
     emptyTitle?: string;
     emptyText?: string;
-    onEdit: (item: T) => void;
-    onDelete: (item: T) => void;
+    editButtonLabel?: string;
+    onEdit?: (item: T) => void;
+    onDelete?: (item: T) => void;
+    hideActions?: boolean;
 }
 
 export default function LookupTable<T>({
@@ -37,34 +39,38 @@ export default function LookupTable<T>({
     loadingText = 'Loading...',
     emptyTitle = 'No Records Found',
     emptyText = 'Create your first record to get started.',
+    editButtonLabel = 'Edit',
     onEdit,
     onDelete,
+    hideActions = false,
 }: LookupTableProps<T>) {
-    const totalColumns = columns.length + 1; // +1 for Actions
+    const totalColumns = hideActions ? columns.length : columns.length + 1;
 
     return (
         <div className="animate-fade" style={{ paddingTop: '1rem' }}>
-            <header style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-end',
-                marginBottom: '3rem',
-                padding: '0 1rem'
-            }}>
-                <div>
-                    <h1 className="auth-title" style={{ fontSize: '3rem', margin: 0 }}>{title}</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '0.5rem' }}>
-                        {subtitle}
-                    </p>
-                </div>
-                <button
-                    className="btn btn-primary"
-                    style={{ height: 'fit-content', padding: '1rem 2rem' }}
-                    onClick={onAdd}
-                >
-                    <span style={{ fontSize: '1.2rem' }}>+</span> {addButtonLabel}
-                </button>
-            </header>
+            {(title || subtitle || (onAdd && addButtonLabel)) && (
+                <header style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-end',
+                    marginBottom: '3rem',
+                    padding: '0 1rem'
+                }}>
+                    <div>
+                        {title && <h1 className="auth-title" style={{ fontSize: '3rem', margin: 0 }}>{title}</h1>}
+                        {subtitle && <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '0.5rem' }}>{subtitle}</p>}
+                    </div>
+                    {onAdd && addButtonLabel && (
+                        <button
+                            className="btn btn-primary"
+                            style={{ height: 'fit-content', padding: '1rem 2rem' }}
+                            onClick={onAdd}
+                        >
+                            <span style={{ fontSize: '1.2rem' }}>+</span> {addButtonLabel}
+                        </button>
+                    )}
+                </header>
+            )}
 
             {error && (
                 <div className="glass" style={{
@@ -89,12 +95,12 @@ export default function LookupTable<T>({
                             {columns.map((col, i) => (
                                 <th
                                     key={col.header}
-                                    style={i === 0 ? { borderRadius: '20px 0 0 0' } : undefined}
+                                    style={i === 0 ? { borderRadius: hideActions ? '20px 0 0 0' : '20px 0 0 0' } : (i === columns.length - 1 && hideActions ? { borderRadius: '0 20px 0 0' } : undefined)}
                                 >
                                     {col.header}
                                 </th>
                             ))}
-                            <th style={{ textAlign: 'right', borderRadius: '0 20px 0 0' }}>Actions</th>
+                            {!hideActions && <th style={{ textAlign: 'right', borderRadius: '0 20px 0 0' }}>Actions</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -111,29 +117,35 @@ export default function LookupTable<T>({
                                 {emptyText}
                             </td></tr>
                         ) : (
-                            data.map((item) => (
-                                <tr key={String(item[keyField])}>
+                            data.map((item, idx) => (
+                                <tr key={String(item[keyField]) || idx}>
                                     {columns.map((col) => (
                                         <td key={col.header}>{col.render(item)}</td>
                                     ))}
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '0.6rem 1.25rem', borderRadius: '10px' }}
-                                                onClick={() => onEdit(item)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', color: 'var(--error)', borderColor: 'rgba(239, 68, 68, 0.1)' }}
-                                                onClick={() => onDelete(item)}
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </td>
+                                    {!hideActions && (
+                                        <td style={{ textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                                {onEdit && (
+                                                    <button
+                                                        className="btn btn-secondary"
+                                                        style={{ padding: '0.6rem 1.25rem', borderRadius: '10px' }}
+                                                        onClick={() => onEdit(item)}
+                                                    >
+                                                        {editButtonLabel}
+                                                    </button>
+                                                )}
+                                                {onDelete && (
+                                                    <button
+                                                        className="btn btn-secondary"
+                                                        style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', color: 'var(--error)', borderColor: 'rgba(239, 68, 68, 0.1)' }}
+                                                        onClick={() => onDelete(item)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    )}
                                 </tr>
                             ))
                         )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { saleDetailsApi, salesApi, productsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
 
@@ -8,7 +9,7 @@ interface SaleDetail {
     saleDetailID: number;
     saleID: number;
     productID: number;
-    quantity: number;
+    orderedQuantity: number;
     unitPrice: number;
     subtotal?: number;
 }
@@ -31,20 +32,34 @@ export default function SaleDetailsPage() {
     const [products, setProducts] = useState<Product[]>([]);
 
     const [loading, setLoading] = useState(true);
+    const searchParams = useSearchParams();
+    const saleId = Number(searchParams?.get('saleId') || '0');
+    const filteredDetails = saleId ? saleDetails.filter(d => d.saleID === saleId) : saleDetails;
+    const totalAmount = filteredDetails.reduce((sum, d) => sum + (d.subtotal ?? d.orderedQuantity * d.unitPrice), 0);
     const [error, setError] = useState('');
 
     const [isEditing, setIsEditing] = useState(false);
     const [currentDetail, setCurrentDetail] = useState<Partial<SaleDetail>>({
         saleID: 0,
         productID: 0,
-        quantity: 1,
+        orderedQuantity: 1,
         unitPrice: 0
     });
     const [showModal, setShowModal] = useState(false);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         loadInitialData();
     }, []);
+
+    const mapSaleDetail = (detail: any): SaleDetail => ({
+        saleDetailID: detail.saleDetailID ?? detail.SaleDetailID,
+        saleID: detail.saleID ?? detail.SaleID,
+        productID: detail.productID ?? detail.ProductID,
+        orderedQuantity: detail.orderedQuantity ?? detail.OrderedQuantity ?? detail.quantity ?? detail.Quantity ?? 0,
+        unitPrice: detail.unitPrice ?? detail.UnitPrice ?? 0,
+        subtotal: detail.subtotal ?? detail.Subtotal ?? (detail.orderedQuantity ?? detail.OrderedQuantity ?? detail.quantity ?? detail.Quantity ?? 0) * (detail.unitPrice ?? detail.UnitPrice ?? 0),
+    });
 
     const loadInitialData = async () => {
         try {
@@ -54,7 +69,8 @@ export default function SaleDetailsPage() {
                 salesApi.getAll(),
                 productsApi.getAll()
             ]);
-            setSaleDetails(detailsData || []);
+            const mappedDetailsData = detailsData?.map(mapSaleDetail) || [];
+            setSaleDetails(mappedDetailsData);
             setSales(salesData || []);
             setProducts(productsData || []);
 
@@ -74,7 +90,8 @@ export default function SaleDetailsPage() {
     const loadDetails = async () => {
         try {
             const data = await saleDetailsApi.getAll();
-            setSaleDetails(data);
+            const mappedData = data?.map(mapSaleDetail) || [];
+            setSaleDetails(mappedData);
         } catch (err: any) {
             setError(err.message);
         }
@@ -93,16 +110,25 @@ export default function SaleDetailsPage() {
         e.preventDefault();
         setLoading(true);
         try {
+            // Map frontend fields to backend model fields
+            const detailToSave = {
+                SaleDetailID: currentDetail.saleDetailID,
+                SaleID: currentDetail.saleID,
+                ProductID: currentDetail.productID,
+                OrderedQuantity: currentDetail.orderedQuantity,
+                UnitPrice: currentDetail.unitPrice,
+            };
+
             if (isEditing && currentDetail.saleDetailID) {
-                await saleDetailsApi.update(currentDetail.saleDetailID, currentDetail);
+                await saleDetailsApi.update(currentDetail.saleDetailID, detailToSave);
             } else {
-                await saleDetailsApi.create(currentDetail);
+                await saleDetailsApi.create(detailToSave);
             }
             setShowModal(false);
             setCurrentDetail({
                 saleID: sales.length > 0 ? sales[0].saleID : 0,
                 productID: products.length > 0 ? products[0].productID : 0,
-                quantity: 1,
+                orderedQuantity: 1,
                 unitPrice: products.length > 0 ? products[0].unitPrice : 0
             });
             setIsEditing(false);
@@ -159,7 +185,7 @@ export default function SaleDetailsPage() {
             header: 'Quantity',
             render: (d) => (
                 <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                    {d.quantity}
+                    {d.orderedQuantity}
                 </span>
             ),
         },
@@ -174,7 +200,7 @@ export default function SaleDetailsPage() {
         {
             header: 'Subtotal',
             render: (d) => {
-                const subtotal = d.subtotal ?? (d.quantity * d.unitPrice);
+                const subtotal = d.subtotal ?? (d.orderedQuantity * d.unitPrice);
                 return (
                     <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
                         Rs. {subtotal.toFixed(2)}
@@ -186,6 +212,23 @@ export default function SaleDetailsPage() {
 
     return (
         <>
+            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0 }}>
+                    {saleId ? `Details for Sale #${saleId}` : 'All Sale Details'}
+                </h2>
+                <div style={{ 
+                    padding: '0.75rem 1.5rem', 
+                    background: 'rgba(79, 70, 229, 0.05)', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(79, 70, 229, 0.1)',
+                    textAlign: 'right'
+                }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginRight: '1rem' }}>Total Sales Sum:</span>
+                    <span style={{ color: 'var(--primary)', fontSize: '1.25rem', fontWeight: 700 }}>
+                        Rs. {totalAmount.toFixed(2)}
+                    </span>
+                </div>
+            </div>
             <LookupTable<SaleDetail>
                 title="Sale Details"
                 subtitle="Manage line items for sales."
@@ -195,13 +238,13 @@ export default function SaleDetailsPage() {
                     setCurrentDetail({
                         saleID: sales.length > 0 ? sales[0].saleID : 0,
                         productID: products.length > 0 ? products[0].productID : 0,
-                        quantity: 1,
+                        orderedQuantity: 1,
                         unitPrice: products.length > 0 ? products[0].unitPrice : 0
                     });
                     setShowModal(true);
                 }}
                 columns={columns}
-                data={saleDetails}
+                data={filteredDetails}
                 keyField="saleDetailID"
                 loading={loading}
                 error={error}
@@ -262,18 +305,18 @@ export default function SaleDetailsPage() {
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
-                                    <label className="form-label">Quantity</label>
+                                    <label className="form-label">Ordered Quantity</label>
                                     <input
                                         type="number"
                                         min="1"
                                         className="form-input"
                                         placeholder="1"
                                         required
-                                        value={currentDetail.quantity === undefined ? '' : currentDetail.quantity}
-                                        onChange={(e) => setCurrentDetail({ ...currentDetail, quantity: e.target.value === '' ? 0 : parseInt(e.target.value) })}
+                                        value={currentDetail.orderedQuantity === undefined ? '' : currentDetail.orderedQuantity}
+                                        onChange={(e) => setCurrentDetail({ ...currentDetail, orderedQuantity: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                     />
                                 </div>
 
@@ -295,7 +338,7 @@ export default function SaleDetailsPage() {
                             <div style={{ padding: '1rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', marginTop: '1.5rem', textAlign: 'right' }}>
                                 <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Automatic Subtotal</p>
                                 <p style={{ margin: 0, color: 'var(--primary)', fontSize: '1.25rem', fontWeight: 700 }}>
-                                    Rs. {((currentDetail.quantity || 0) * (currentDetail.unitPrice || 0)).toFixed(2)}
+                                    Rs. {((currentDetail.orderedQuantity || 0) * (currentDetail.unitPrice || 0)).toFixed(2)}
                                 </p>
                             </div>
 

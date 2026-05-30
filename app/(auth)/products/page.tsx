@@ -11,9 +11,11 @@ interface Product {
     supplierID: number;
     sku?: string;
     description?: string;
-    unitPrice: number;
+    unitOfMeasure?: string;
+    costPrice: number;
+    unitPrice: number; // Selling Price
     reorderLevel?: number;
-    isActive?: boolean;
+    isActive: boolean;
 }
 
 interface Category {
@@ -41,6 +43,8 @@ export default function ProductsPage() {
         supplierID: 0,
         sku: '',
         description: '',
+        unitOfMeasure: 'PCS',
+        costPrice: 0,
         unitPrice: 0,
         reorderLevel: 0,
         isActive: true
@@ -101,6 +105,8 @@ export default function ProductsPage() {
                 supplierID: suppliers.length > 0 ? suppliers[0].supplierID : 0,
                 sku: '',
                 description: '',
+                unitOfMeasure: 'PCS',
+                costPrice: 0,
                 unitPrice: 0,
                 reorderLevel: 0,
                 isActive: true
@@ -163,19 +169,42 @@ export default function ProductsPage() {
             ),
         },
         {
-            header: 'Unit Price',
+            header: 'Unit / UOM',
             render: (p) => (
-                <span style={{ fontWeight: 600, color: 'var(--secondary)' }}>
-                    Rs. {p.unitPrice?.toFixed(2) || '0.00'}
+                <span style={{ 
+                    padding: '0.3rem 0.6rem', 
+                    borderRadius: '8px', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 700, 
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    color: 'var(--text-main)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
+                    {p.unitOfMeasure || 'PCS'}
                 </span>
             ),
         },
         {
-            header: 'Reorder Level',
+            header: 'Pricing',
             render: (p) => (
-                <span style={{ fontWeight: 600, color: p.reorderLevel && p.reorderLevel > 0 ? 'var(--text-main)' : 'var(--error)' }}>
-                    {p.reorderLevel || 0}
-                </span>
+                <div>
+                    <p style={{ fontWeight: 600, color: 'var(--secondary)', margin: 0 }}>
+                        Sell: Rs. {p.unitPrice?.toFixed(2)}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                        Cost: Rs. {p.costPrice?.toFixed(2)}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            header: 'Inventory',
+            render: (p) => (
+                <div>
+                    <p style={{ fontWeight: 600, margin: 0, color: p.reorderLevel && p.reorderLevel > 0 ? 'var(--text-main)' : 'var(--error)' }}>
+                        Min: {p.reorderLevel || 0}
+                    </p>
+                </div>
             ),
         },
         {
@@ -186,11 +215,11 @@ export default function ProductsPage() {
                     borderRadius: '12px', 
                     fontSize: '0.8rem', 
                     fontWeight: 700, 
-                    backgroundColor: p.isActive !== false ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    color: p.isActive !== false ? 'var(--secondary)' : 'var(--error)',
+                    backgroundColor: p.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    color: p.isActive ? 'var(--secondary)' : 'var(--error)',
                     display: 'inline-block'
                 }}>
-                    {p.isActive !== false ? 'Active' : 'Inactive'}
+                    {p.isActive ? 'Active' : 'Inactive'}
                 </span>
             ),
         },
@@ -210,6 +239,8 @@ export default function ProductsPage() {
                         supplierID: suppliers.length > 0 ? suppliers[0].supplierID : 0,
                         sku: '',
                         description: '',
+                        unitOfMeasure: 'PCS',
+                        costPrice: 0,
                         unitPrice: 0,
                         reorderLevel: 0,
                         isActive: true
@@ -316,9 +347,24 @@ export default function ProductsPage() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
-                                    <label className="form-label">Unit Price (Rs.)</label>
+                                    <label className="form-label">UOM</label>
+                                    <select
+                                        className="form-input"
+                                        required
+                                        value={currentProduct.unitOfMeasure}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, unitOfMeasure: e.target.value })}
+                                    >
+                                        <option value="PCS">PCS</option>
+                                        <option value="KG">KG</option>
+                                        <option value="LTR">LTR</option>
+                                        <option value="BOX">BOX</option>
+                                        <option value="PKT">PKT</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Cost Price (Rs.)</label>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -326,10 +372,26 @@ export default function ProductsPage() {
                                         className="form-input"
                                         placeholder="0.00"
                                         required
-                                        value={currentProduct.unitPrice === undefined ? '' : currentProduct.unitPrice}
-                                        onChange={(e) => setCurrentProduct({ ...currentProduct, unitPrice: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+                                        value={currentProduct.costPrice}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, costPrice: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
+                                <div className="form-group">
+                                    <label className="form-label">Selling Price (Rs.)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        required
+                                        value={currentProduct.unitPrice}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, unitPrice: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                                 <div className="form-group">
                                     <label className="form-label">Reorder Level</label>
                                     <input
@@ -342,17 +404,16 @@ export default function ProductsPage() {
                                         onChange={(e) => setCurrentProduct({ ...currentProduct, reorderLevel: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                     />
                                 </div>
-                            </div>
-
-                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
-                                <input
-                                    type="checkbox"
-                                    id="isActive"
-                                    checked={currentProduct.isActive !== false}
-                                    onChange={(e) => setCurrentProduct({ ...currentProduct, isActive: e.target.checked })}
-                                    style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                                />
-                                <label htmlFor="isActive" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>Is Active</label>
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem' }}>
+                                    <input
+                                        type="checkbox"
+                                        id="isActive"
+                                        checked={currentProduct.isActive !== false}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, isActive: e.target.checked })}
+                                        style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                    />
+                                    <label htmlFor="isActive" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>Is Active</label>
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>

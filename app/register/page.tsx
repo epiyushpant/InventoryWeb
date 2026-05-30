@@ -29,7 +29,7 @@ export default function RegisterPage() {
             await authApi.register(formData);
             router.push('/login?registered=true');
         } catch (err: any) {
-            setError(err.message || 'Initialization sequence failed. Retry later.');
+            setError(err.message || 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -39,30 +39,30 @@ export default function RegisterPage() {
         <div className="auth-container">
             <div className="auth-card glass animate-fade">
                 <div style={{ marginBottom: '2.5rem' }}>
-                    <h1 className="auth-title">New Operator</h1>
-                    <p className="auth-subtitle">Initialize your strategic clearance.</p>
+                    <h1 className="auth-title">Register New User</h1>
+                    <p className="auth-subtitle">Create your account to access the inventory system.</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label className="form-label">Full Designation</label>
+                        <label className="form-label">Name</label>
                         <input
                             name="fullName"
                             type="text"
                             className="form-input"
-                            placeholder="e.g. Commander John Doe"
+                            placeholder="Enter your full name"
                             value={formData.fullName}
                             onChange={handleChange}
                         />
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">Operator Identity</label>
+                        <label className="form-label">Username</label>
                         <input
                             name="username"
                             type="text"
                             className="form-input"
-                            placeholder="Unique identifier"
+                            placeholder="Enter your username"
                             value={formData.username}
                             onChange={handleChange}
                             required
@@ -70,12 +70,12 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">Communication Link</label>
+                        <label className="form-label">Email</label>
                         <input
                             name="email"
                             type="email"
                             className="form-input"
-                            placeholder="Email address"
+                            placeholder="Enter your email address"
                             value={formData.email}
                             onChange={handleChange}
                             required
@@ -83,12 +83,12 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">Security Key</label>
+                        <label className="form-label">Password</label>
                         <input
                             name="password"
                             type="password"
                             className="form-input"
-                            placeholder="••••••••"
+                            placeholder="Enter your password"
                             value={formData.password}
                             onChange={handleChange}
                             required
@@ -107,14 +107,14 @@ export default function RegisterPage() {
                         style={{ width: '100%', marginTop: '1.5rem', padding: '1rem' }}
                         disabled={loading}
                     >
-                        {loading ? 'Initializing...' : 'Commit Protocol'}
+                        {loading ? 'Registering...' : 'Register'}
                     </button>
                 </form>
 
                 <p style={{ marginTop: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    Already cleared?{' '}
+                    Already have an account?{' '}
                     <Link href="/login" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
-                        Establish Session
+                        Login here
                     </Link>
                 </p>
             </div>

@@ -8,20 +8,55 @@ interface Category {
     categoryID: number;
     categoryName: string;
     description?: string;
+    parentCategoryID?: number;
+    parentCategory?: Category;
+    isActive: boolean;
+    createdDate: string;
 }
 
 const columns: Column<Category>[] = [
     {
         header: 'Category Name',
         render: (cat) => (
-            <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{cat.categoryName}</p>
+            <div>
+                <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{cat.categoryName}</p>
+                {cat.parentCategory && (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--primary)', margin: 0, opacity: 0.8 }}>
+                        Parent: {cat.parentCategory.categoryName}
+                    </p>
+                )}
+            </div>
         ),
     },
     {
         header: 'Description',
         render: (cat) => (
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>
-                {cat.description || <span style={{ opacity: 0.3 }}>No description provided.</span>}
+                {cat.description || <span style={{ opacity: 0.3 }}>No description.</span>}
+            </p>
+        ),
+    },
+    {
+        header: 'Status',
+        render: (cat) => (
+            <span style={{
+                fontSize: '0.75rem',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '100px',
+                background: cat.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                color: cat.isActive ? 'var(--secondary)' : 'var(--error)',
+                fontWeight: 700,
+                border: cat.isActive ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+            }}>
+                {cat.isActive ? 'Active' : 'Inactive'}
+            </span>
+        ),
+    },
+    {
+        header: 'Created',
+        render: (cat) => (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>
+                {new Date(cat.createdDate).toLocaleDateString()}
             </p>
         ),
     },
@@ -33,7 +68,12 @@ export default function CategoriesPage() {
     const [error, setError] = useState('');
 
     const [isEditing, setIsEditing] = useState(false);
-    const [currentCategory, setCurrentCategory] = useState<Partial<Category>>({ categoryName: '', description: '' });
+    const [currentCategory, setCurrentCategory] = useState<Partial<Category>>({ 
+        categoryName: '', 
+        description: '',
+        parentCategoryID: undefined,
+        isActive: true
+    });
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
@@ -61,7 +101,12 @@ export default function CategoriesPage() {
                 await categoriesApi.create(currentCategory);
             }
             setShowModal(false);
-            setCurrentCategory({ categoryName: '', description: '' });
+            setCurrentCategory({ 
+                categoryName: '', 
+                description: '',
+                parentCategoryID: undefined,
+                isActive: true
+            });
             setIsEditing(false);
             await loadCategories();
         } catch (err: any) {
@@ -95,7 +140,12 @@ export default function CategoriesPage() {
                 addButtonLabel="Add New Category"
                 onAdd={() => {
                     setIsEditing(false);
-                    setCurrentCategory({ categoryName: '', description: '' });
+                    setCurrentCategory({ 
+                        categoryName: '', 
+                        description: '',
+                        parentCategoryID: undefined,
+                        isActive: true
+                    });
                     setShowModal(true);
                 }}
                 columns={columns}
@@ -140,15 +190,38 @@ export default function CategoriesPage() {
                                 />
                             </div>
                             <div className="form-group">
+                                <label className="form-label">Parent Category (Optional)</label>
+                                <select
+                                    className="form-input"
+                                    value={currentCategory.parentCategoryID || ''}
+                                    onChange={(e) => setCurrentCategory({ ...currentCategory, parentCategoryID: e.target.value ? parseInt(e.target.value) : undefined })}
+                                >
+                                    <option value="">None (Top Level)</option>
+                                    {categories.filter(c => c.categoryID !== currentCategory.categoryID).map(c => (
+                                        <option key={c.categoryID} value={c.categoryID}>{c.categoryName}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
                                 <label className="form-label">Description</label>
                                 <textarea
                                     className="form-input"
-                                    rows={4}
+                                    rows={3}
                                     placeholder="Describe this category..."
                                     style={{ resize: 'none' }}
                                     value={currentCategory.description}
                                     onChange={(e) => setCurrentCategory({ ...currentCategory, description: e.target.value })}
                                 />
+                            </div>
+                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                                <input
+                                    type="checkbox"
+                                    id="isActive"
+                                    style={{ width: '20px', height: '20px' }}
+                                    checked={currentCategory.isActive}
+                                    onChange={(e) => setCurrentCategory({ ...currentCategory, isActive: e.target.checked })}
+                                />
+                                <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Category</label>
                             </div>
                             <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>
                                 <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => setShowModal(false)}>Cancel</button>

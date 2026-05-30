@@ -10,6 +10,11 @@ interface Customer {
     email: string;
     phone: string;
     address: string;
+    billingAddress?: string;
+    shippingAddress?: string;
+    creditLimit: number;
+    pan?: string;
+    isActive: boolean;
 }
 
 export default function CustomersPage() {
@@ -22,7 +27,12 @@ export default function CustomersPage() {
         fullName: '',
         email: '',
         phone: '',
-        address: ''
+        address: '',
+        billingAddress: '',
+        shippingAddress: '',
+        creditLimit: 0,
+        pan: '',
+        isActive: true
     });
     const [showModal, setShowModal] = useState(false);
 
@@ -52,7 +62,17 @@ export default function CustomersPage() {
                 await customersApi.create(currentCustomer);
             }
             setShowModal(false);
-            setCurrentCustomer({ fullName: '', email: '', phone: '', address: '' });
+            setCurrentCustomer({ 
+                fullName: '', 
+                email: '', 
+                phone: '', 
+                address: '',
+                billingAddress: '',
+                shippingAddress: '',
+                creditLimit: 0,
+                pan: '',
+                isActive: true
+            });
             setIsEditing(false);
             await loadCustomers();
         } catch (err: any) {
@@ -80,25 +100,38 @@ export default function CustomersPage() {
 
     const columns: Column<Customer>[] = [
         {
-            header: 'Customer Name',
-            render: (c) => (
-                <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{c.fullName}</p>
-            ),
-        },
-        {
-            header: 'Email / Phone',
+            header: 'Contact Info',
             render: (c) => (
                 <div>
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{c.email || '-'}</span>
-                    <br />
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{c.phone || '-'}</span>
+                    <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{c.fullName}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>PAN: <code style={{ color: 'var(--primary)' }}>{c.pan || '—'}</code></p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>{c.phone}</p>
                 </div>
             ),
         },
         {
-            header: 'Address',
+            header: 'Credit Account',
             render: (c) => (
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{c.address || '-'}</span>
+                <div>
+                    <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>${c.creditLimit?.toLocaleString()}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Credit Limit</p>
+                </div>
+            ),
+        },
+        {
+            header: 'Status',
+            render: (c) => (
+                <span style={{
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '100px',
+                    background: c.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    color: c.isActive ? 'var(--secondary)' : 'var(--error)',
+                    fontWeight: 700,
+                    border: c.isActive ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
+                }}>
+                    {c.isActive ? 'Active' : 'Inactive'}
+                </span>
             ),
         }
     ];
@@ -111,7 +144,16 @@ export default function CustomersPage() {
                 addButtonLabel="Add New Customer"
                 onAdd={() => {
                     setIsEditing(false);
-                    setCurrentCustomer({ fullName: '', email: '', phone: '', address: '' });
+                    setCurrentCustomer({ 
+                        fullName: '', 
+                        email: '', 
+                        phone: '', 
+                        address: '',
+                        billingAddress: '',
+                        shippingAddress: '',
+                        creditLimit: 0,
+                        isActive: true
+                    });
                     setShowModal(true);
                 }}
                 columns={columns}
@@ -176,14 +218,62 @@ export default function CustomersPage() {
                                 </div>
                             </div>
                             
-                            <div className="form-group">
-                                <label className="form-label">Address</label>
-                                <textarea
-                                    className="form-input"
-                                    rows={3}
-                                    value={currentCustomer.address}
-                                    onChange={(e) => setCurrentCustomer({ ...currentCustomer, address: e.target.value })}
-                                />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div className="form-group">
+                                    <label className="form-label">Billing Address</label>
+                                    <textarea
+                                        className="form-input"
+                                        rows={2}
+                                        placeholder="Same as main if blank"
+                                        value={currentCustomer.billingAddress}
+                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, billingAddress: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Shipping Address</label>
+                                    <textarea
+                                        className="form-input"
+                                        rows={2}
+                                        placeholder="Delivery destination"
+                                        value={currentCustomer.shippingAddress}
+                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, shippingAddress: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'center' }}>
+                                <div className="form-group">
+                                    <label className="form-label">Credit Limit ($)</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        value={currentCustomer.creditLimit}
+                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, creditLimit: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">PAN Number</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="9-digit PAN"
+                                        value={currentCustomer.pan}
+                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, pan: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', marginBottom: '1.5rem' }}>
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                                    <input
+                                        type="checkbox"
+                                        id="isActive"
+                                        style={{ width: '20px', height: '20px' }}
+                                        checked={currentCustomer.isActive}
+                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, isActive: e.target.checked })}
+                                    />
+                                    <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Customer</label>
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>

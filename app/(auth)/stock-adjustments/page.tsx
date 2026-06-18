@@ -131,17 +131,8 @@ export default function StockAdjustmentsPage() {
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '600px', width: '100%', padding: '3.5rem' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">Create Adjustment</h2>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
@@ -158,7 +149,7 @@ export default function StockAdjustmentsPage() {
                                     {locations.map(l => <option key={l.locationID} value={l.locationID}>{l.warehouseName}</option>)}
                                 </select>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Adjustment Type</label>
                                     <select className="form-input" value={currentAdjustment.adjustmentType} onChange={e => setCurrentAdjustment({...currentAdjustment, adjustmentType: e.target.value})}>
@@ -175,9 +166,9 @@ export default function StockAdjustmentsPage() {
                                 <label className="form-label">Reason</label>
                                 <textarea className="form-input" rows={2} required value={currentAdjustment.reason} onChange={e => setCurrentAdjustment({...currentAdjustment, reason: e.target.value})} placeholder="e.g. Damage during handling" />
                             </div>
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '2rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Submit Adjustment</button>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block">Submit Adjustment</button>
                             </div>
                         </form>
                     </div>

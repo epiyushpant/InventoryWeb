@@ -225,17 +225,8 @@ export default function SalesInvoicesPage() {
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '800px', width: '100%', padding: '3rem', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                             <div>
                                 <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>Generate Bill</h2>
@@ -333,7 +324,7 @@ export default function SalesInvoicesPage() {
                                 </div>
                             )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Payment Status</label>
                                     <select className="form-input" style={{ height: '3.5rem' }} value={currentInvoice.status} onChange={e => setCurrentInvoice({...currentInvoice, status: e.target.value})}>
@@ -350,9 +341,9 @@ export default function SalesInvoicesPage() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '1rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '1rem' }}>Generate & Save Bill</button>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block">Generate & Save Bill</button>
                             </div>
                         </form>
                     </div>

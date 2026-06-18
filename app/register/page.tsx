@@ -96,24 +96,24 @@ export default function RegisterPage() {
                     </div>
 
                     {error && (
-                        <div className="error-message glass" style={{ padding: '0.75rem', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                        <div className="alert-card error">
                             <span>⚠️</span> {error}
                         </div>
                     )}
 
                     <button
                         type="submit"
-                        className="btn btn-primary"
-                        style={{ width: '100%', marginTop: '1.5rem', padding: '1rem' }}
+                        className="btn btn-primary btn-block"
+                        style={{ marginTop: '1.5rem' }}
                         disabled={loading}
                     >
                         {loading ? 'Registering...' : 'Register'}
                     </button>
                 </form>
 
-                <p style={{ marginTop: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                <p className="text-center" style={{ marginTop: '2.5rem', fontSize: '0.9rem' }}>
                     Already have an account?{' '}
-                    <Link href="/login" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+                    <Link href="/login" className="link-primary">
                         Login here
                     </Link>
                 </p>

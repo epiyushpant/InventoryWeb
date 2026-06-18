@@ -56,14 +56,41 @@ export default function PurchaseRequisitionsPage() {
         e.preventDefault();
         setLoading(true);
         try {
-            await purchaseRequisitionsApi.create(currentPR);
-            alert('Requisition submitted successfully.');
+            if (currentPR.prid) {
+                await purchaseRequisitionsApi.update(currentPR.prid, currentPR);
+                alert('Requisition updated successfully.');
+            } else {
+                await purchaseRequisitionsApi.create(currentPR);
+                alert('Requisition submitted successfully.');
+            }
             setShowModal(false);
+            setCurrentPR({
+                requestedBy: '',
+                productID: 0,
+                quantity: 1,
+                requiredDate: new Date().toISOString().split('T')[0],
+                status: 'Pending'
+            });
             await loadData();
         } catch (err: any) {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEdit = (req: PurchaseRequisition) => {
+        setCurrentPR(req);
+        setShowModal(true);
+    };
+
+    const handleDelete = async (req: PurchaseRequisition) => {
+        if (!confirm('Are you sure you want to delete this requisition?')) return;
+        try {
+            await purchaseRequisitionsApi.delete(req.prid);
+            await loadData();
+        } catch (err: any) {
+            setError(err.message);
         }
     };
 
@@ -91,22 +118,36 @@ export default function PurchaseRequisitionsPage() {
         {
             header: 'Actions',
             render: (r) => (
-                r.status === 'Pending' ? (
-                    <button 
-                        className="btn btn-primary" 
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
-                        onClick={async () => {
-                            try {
-                                await purchaseRequisitionsApi.update(r.prid, { ...r, status: 'Approved' });
-                                await loadData();
-                            } catch (err: any) {
-                                setError(err.message);
-                            }
-                        }}
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {r.status === 'Pending' && (
+                        <button 
+                            className="btn btn-primary btn-small"
+                            onClick={async () => {
+                                try {
+                                    await purchaseRequisitionsApi.update(r.prid, { ...r, status: 'Approved' });
+                                    await loadData();
+                                } catch (err: any) {
+                                    setError(err.message);
+                                }
+                            }}
+                        >
+                            Approve
+                        </button>
+                    )}
+                    <button
+                        className="btn btn-secondary btn-small"
+                        onClick={() => handleEdit(r)}
                     >
-                        Approve
+                        Edit
                     </button>
-                ) : null
+                    <button
+                        className="btn btn-secondary btn-small"
+                        style={{ color: 'var(--error)', borderColor: 'rgba(239, 68, 68, 0.1)' }}
+                        onClick={() => handleDelete(r)}
+                    >
+                        Delete
+                    </button>
+                </div>
             )
         }
     ];
@@ -123,22 +164,12 @@ export default function PurchaseRequisitionsPage() {
                 keyField="prid"
                 loading={loading}
                 error={error}
-                onEdit={() => {}}
-                onDelete={() => {}}
+                hideActions
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '600px', width: '100%', padding: '3.5rem' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">New Requisition</h2>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
@@ -152,7 +183,7 @@ export default function PurchaseRequisitionsPage() {
                                     {products.map(p => <option key={p.productID} value={p.productID}>{p.productName}</option>)}
                                 </select>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Quantity</label>
                                     <input type="number" className="form-input" min="1" required value={currentPR.quantity} onChange={e => setCurrentPR({...currentPR, quantity: parseInt(e.target.value)})} />
@@ -162,9 +193,9 @@ export default function PurchaseRequisitionsPage() {
                                     <input type="date" className="form-input" required value={currentPR.requiredDate} onChange={e => setCurrentPR({...currentPR, requiredDate: e.target.value})} />
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '2rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Submit Request</button>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block">Submit Request</button>
                             </div>
                         </form>
                     </div>

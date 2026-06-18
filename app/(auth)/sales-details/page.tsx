@@ -256,24 +256,15 @@ export default function SaleDetailsPage() {
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '800px', width: '100%', padding: '3.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Detail' : 'Add Detail Line'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configure products and quantities for a sale.</p>
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Sale</label>
                                     <select
@@ -342,9 +333,9 @@ export default function SaleDetailsPage() {
                                 </p>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '1rem' }} disabled={loading}>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block" disabled={loading}>
                                     {loading ? 'Processing...' : (isEditing ? 'Save Details' : 'Add Detail Line')}
                                 </button>
                             </div>

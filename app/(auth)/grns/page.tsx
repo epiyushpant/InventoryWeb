@@ -69,14 +69,46 @@ export default function GRNsPage() {
         e.preventDefault();
         setLoading(true);
         try {
-            await grnsApi.create(currentGRN);
-            alert('GRN saved successfully. Inventory updated.');
+            if (currentGRN.grnid) {
+                await grnsApi.update(currentGRN.grnid, currentGRN);
+                alert('GRN updated successfully.');
+            } else {
+                await grnsApi.create(currentGRN);
+                alert('GRN saved successfully. Inventory updated.');
+            }
             setShowModal(false);
+            setCurrentGRN({
+                purchaseOrderID: 0,
+                productID: 0,
+                receivedQuantity: 0,
+                damagedQuantity: 0,
+                locationID: 0,
+                receivedDate: new Date().toISOString().split('T')[0]
+            });
             await loadData();
         } catch (err: any) {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEdit = (grn: GRN) => {
+        const editGRN = { ...grn };
+        if (editGRN.receivedDate?.includes('T')) {
+            editGRN.receivedDate = editGRN.receivedDate.split('T')[0];
+        }
+        setCurrentGRN(editGRN);
+        setShowModal(true);
+    };
+
+    const handleDelete = async (grn: GRN) => {
+        if (!confirm('Are you sure you want to delete this GRN?')) return;
+        try {
+            await grnsApi.delete(grn.grnid);
+            await loadData();
+        } catch (err: any) {
+            setError(err.message);
         }
     };
 
@@ -102,22 +134,13 @@ export default function GRNsPage() {
                 keyField="grnid"
                 loading={loading}
                 error={error}
-                onEdit={() => { }}
-                onDelete={() => { }}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '600px', width: '100%', padding: '3.5rem' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">Receive Shipment</h2>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
@@ -163,7 +186,7 @@ export default function GRNsPage() {
                                     })()}
                                 </select>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Received Qty</label>
                                     <input type="number" className="form-input" min="1" required value={currentGRN.receivedQuantity} onChange={e => setCurrentGRN({ ...currentGRN, receivedQuantity: parseInt(e.target.value) })} />
@@ -180,9 +203,9 @@ export default function GRNsPage() {
                                     {locations.map(l => <option key={l.locationID} value={l.locationID}>{l.warehouseName}</option>)}
                                 </select>
                             </div>
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '2rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save GRN</button>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block">Save GRN</button>
                             </div>
                         </form>
                     </div>

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { suppliersApi } from '@/lib/api';
+import { formatAddress } from '@/lib/address';
 import LookupTable, { Column } from '@/components/LookupTable';
+import AddressSelector from '@/components/AddressSelector';
 
 interface Supplier {
     supplierID: number;
@@ -20,11 +22,11 @@ interface Supplier {
 
 const columns: Column<Supplier>[] = [
     {
-        header: 'Supplier Name',
+        header: 'Supplier',
         render: (sup) => (
             <div>
                 <p style={{ fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{sup.supplierName}</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Tax ID: {sup.taxVatNumber || 'N/A'}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>Tax ID: {sup.taxVatNumber || 'N/A'}</p>
             </div>
         ),
     },
@@ -33,17 +35,22 @@ const columns: Column<Supplier>[] = [
         render: (sup) => (
             <div>
                 <p style={{ fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>{sup.contactPerson || '-'}</p>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>{sup.phone}</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{sup.email || 'No email'}</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{sup.phone || 'No phone'}</p>
             </div>
+        ),
+    },
+    {
+        header: 'Address',
+        render: (sup) => (
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                {formatAddress(sup.address, sup.city, sup.country) || 'Not set'}
+            </span>
         ),
     },
     {
         header: 'Payment Terms',
         render: (sup) => <span style={{ fontSize: '0.9rem' }}>{sup.paymentTerms || <span style={{ opacity: 0.3 }}>-</span>}</span>,
-    },
-    {
-        header: 'Location',
-        render: (sup) => <span style={{ fontSize: '0.9rem' }}>{sup.city}, {sup.country}</span>,
     },
     {
         header: 'Status',
@@ -175,29 +182,32 @@ export default function SuppliersPage() {
                 loadingText="Loading Suppliers..."
                 emptyTitle="No Suppliers Found"
                 emptyText="Add your first supplier to get started."
+                searchFields={[
+                    'supplierName',
+                    'contactPerson',
+                    'email',
+                    'phone',
+                    'address',
+                    'city',
+                    'country',
+                    'paymentTerms',
+                    'taxVatNumber',
+                ]}
+                searchPlaceholder="Search suppliers, contacts, or locations..."
                 onEdit={handleEdit}
                 onDelete={handleDelete}
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '800px', width: '100%', padding: '3.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Supplier' : 'New Supplier'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Update your supplier database.</p>
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Company Name</label>
                                     <input
@@ -220,7 +230,7 @@ export default function SuppliersPage() {
                                     />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Email</label>
                                     <input
@@ -236,46 +246,25 @@ export default function SuppliersPage() {
                                     <input
                                         type="text"
                                         className="form-input"
-                                        placeholder="+1 (555) 000-0000"
+                                        placeholder="+977 (1) 4123456"
                                         value={currentSupplier.phone}
                                         onChange={(e) => setCurrentSupplier({ ...currentSupplier, phone: e.target.value })}
                                     />
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Address</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="123 Main St"
-                                    value={currentSupplier.address}
-                                    onChange={(e) => setCurrentSupplier({ ...currentSupplier, address: e.target.value })}
-                                />
-                            </div>
-                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                                <div className="form-group">
-                                    <label className="form-label">City</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        placeholder="New York"
-                                        value={currentSupplier.city}
-                                        onChange={(e) => setCurrentSupplier({ ...currentSupplier, city: e.target.value })}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Country</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        placeholder="USA"
-                                        value={currentSupplier.country}
-                                        onChange={(e) => setCurrentSupplier({ ...currentSupplier, country: e.target.value })}
-                                    />
-                                </div>
-                            </div>
+                            <AddressSelector
+                                country={currentSupplier.country}
+                                city={currentSupplier.city}
+                                address={currentSupplier.address}
+                                onChange={(updates) => setCurrentSupplier({ 
+                                    ...currentSupplier, 
+                                    country: updates.country,
+                                    city: updates.city,
+                                    address: updates.address
+                                })}
+                            />
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Tax / VAT Number</label>
                                     <input
@@ -298,19 +287,19 @@ export default function SuppliersPage() {
                                 </div>
                             </div>
 
-                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                            <div className="form-row-inline">
                                 <input
                                     type="checkbox"
                                     id="isActive"
-                                    style={{ width: '20px', height: '20px' }}
+                                    className="checkbox-input"
                                     checked={currentSupplier.isActive}
                                     onChange={(e) => setCurrentSupplier({ ...currentSupplier, isActive: e.target.checked })}
                                 />
                                 <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Supplier</label>
                             </div>
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '1rem' }} disabled={loading}>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block" disabled={loading}>
                                     {loading ? 'Processing...' : (isEditing ? 'Save Changes' : 'Create Supplier')}
                                 </button>
                             </div>

@@ -220,17 +220,8 @@ export default function InventoriesPage() {
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '600px', width: '100%', padding: '3.5rem' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Inventory' : 'New Inventory Record'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Update stock levels and location for products.</p>
@@ -307,10 +298,19 @@ export default function InventoriesPage() {
                                     ))}
                                 </select>
                             </div>
-
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '1rem' }} disabled={loading}>
+                            <div className="form-row-inline">
+                                <input
+                                    type="checkbox"
+                                    id="isActive"
+                                    className="checkbox-input"
+                                    checked={currentInventory.isActive}
+                                    onChange={(e) => setCurrentInventory({ ...currentInventory, isActive: e.target.checked })}
+                                />
+                                <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Stock</label>
+                            </div>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block" disabled={loading}>
                                     {loading ? 'Processing...' : (isEditing ? 'Save Details' : 'Save Record')}
                                 </button>
                             </div>

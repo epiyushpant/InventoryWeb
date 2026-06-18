@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { customersApi } from '@/lib/api';
+import { formatAddress } from '@/lib/address';
 import LookupTable, { Column } from '@/components/LookupTable';
+import AddressSelector from '@/components/AddressSelector';
 
 interface Customer {
     customerID: number;
@@ -10,11 +12,18 @@ interface Customer {
     email: string;
     phone: string;
     address: string;
+    city?: string;
+    country?: string;
     billingAddress?: string;
+    billingCity?: string;
+    billingCountry?: string;
     shippingAddress?: string;
+    shippingCity?: string;
+    shippingCountry?: string;
     creditLimit: number;
     pan?: string;
     isActive: boolean;
+    shippingSameAsBilling?: boolean;
 }
 
 export default function CustomersPage() {
@@ -28,11 +37,18 @@ export default function CustomersPage() {
         email: '',
         phone: '',
         address: '',
+        city: '',
+        country: '',
         billingAddress: '',
+        billingCity: '',
+        billingCountry: '',
         shippingAddress: '',
+        shippingCity: '',
+        shippingCountry: '',
         creditLimit: 0,
         pan: '',
-        isActive: true
+        isActive: true,
+        shippingSameAsBilling: false
     });
     const [showModal, setShowModal] = useState(false);
 
@@ -67,11 +83,18 @@ export default function CustomersPage() {
                 email: '', 
                 phone: '', 
                 address: '',
+                city: '',
+                country: '',
                 billingAddress: '',
+                billingCity: '',
+                billingCountry: '',
                 shippingAddress: '',
+                shippingCity: '',
+                shippingCountry: '',
                 creditLimit: 0,
                 pan: '',
-                isActive: true
+                isActive: true,
+                shippingSameAsBilling: false
             });
             setIsEditing(false);
             await loadCustomers();
@@ -104,34 +127,35 @@ export default function CustomersPage() {
             render: (c) => (
                 <div>
                     <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{c.fullName}</p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>PAN: <code style={{ color: 'var(--primary)' }}>{c.pan || '—'}</code></p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>{c.phone}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{c.email || 'No email'}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{c.phone || 'No phone'}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.5rem 0 0' }}>PAN: <code style={{ color: 'var(--primary)' }}>{c.pan || '—'}</code></p>
                 </div>
             ),
         },
         {
-            header: 'Credit Account',
+            header: 'Billing Address',
+            render: (c) => (
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    {formatAddress(c.billingAddress, c.billingCity, c.billingCountry) || 'Not set'}
+                </span>
+            ),
+        },
+        {
+            header: 'Shipping Address',
+            render: (c) => (
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    {formatAddress(c.shippingAddress, c.shippingCity, c.shippingCountry) || 'Not set'}
+                </span>
+            ),
+        },
+        {
+            header: 'Account',
             render: (c) => (
                 <div>
-                    <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>${c.creditLimit?.toLocaleString()}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Credit Limit</p>
+                    <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Rs. {c.creditLimit?.toLocaleString()}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{c.isActive ? 'Active' : 'Inactive'}</p>
                 </div>
-            ),
-        },
-        {
-            header: 'Status',
-            render: (c) => (
-                <span style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '100px',
-                    background: c.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    color: c.isActive ? 'var(--secondary)' : 'var(--error)',
-                    fontWeight: 700,
-                    border: c.isActive ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
-                }}>
-                    {c.isActive ? 'Active' : 'Inactive'}
-                </span>
             ),
         }
     ];
@@ -149,10 +173,17 @@ export default function CustomersPage() {
                         email: '', 
                         phone: '', 
                         address: '',
+                        city: '',
+                        country: '',
                         billingAddress: '',
+                        billingCity: '',
+                        billingCountry: '',
                         shippingAddress: '',
+                        shippingCity: '',
+                        shippingCountry: '',
                         creditLimit: 0,
-                        isActive: true
+                        isActive: true,
+                        shippingSameAsBilling: false
                     });
                     setShowModal(true);
                 }}
@@ -169,35 +200,25 @@ export default function CustomersPage() {
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '600px', width: '100%', padding: '3.5rem' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Customer' : 'Add Customer'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Manage customer profile details.</p>
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label className="form-label">Full Name</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    required
-                                    value={currentCustomer.fullName}
-                                    onChange={(e) => setCurrentCustomer({ ...currentCustomer, fullName: e.target.value })}
-                                />
-                            </div>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div className="form-grid form-grid-3">
+                                <div className="form-group">
+                                    <label className="form-label">Full Name</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        required
+                                        value={currentCustomer.fullName}
+                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, fullName: e.target.value })}
+                                    />
+                                </div>
                                 <div className="form-group">
                                     <label className="form-label">Email</label>
                                     <input
@@ -218,32 +239,9 @@ export default function CustomersPage() {
                                 </div>
                             </div>
                             
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
-                                    <label className="form-label">Billing Address</label>
-                                    <textarea
-                                        className="form-input"
-                                        rows={2}
-                                        placeholder="Same as main if blank"
-                                        value={currentCustomer.billingAddress}
-                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, billingAddress: e.target.value })}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Shipping Address</label>
-                                    <textarea
-                                        className="form-input"
-                                        rows={2}
-                                        placeholder="Delivery destination"
-                                        value={currentCustomer.shippingAddress}
-                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, shippingAddress: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'center' }}>
-                                <div className="form-group">
-                                    <label className="form-label">Credit Limit ($)</label>
+                                    <label className="form-label">Credit Limit (Rs.)</label>
                                     <input
                                         type="number"
                                         className="form-input"
@@ -263,22 +261,79 @@ export default function CustomersPage() {
                                     />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', marginBottom: '1.5rem' }}>
-                                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
-                                    <input
-                                        type="checkbox"
-                                        id="isActive"
-                                        style={{ width: '20px', height: '20px' }}
-                                        checked={currentCustomer.isActive}
-                                        onChange={(e) => setCurrentCustomer({ ...currentCustomer, isActive: e.target.checked })}
-                                    />
-                                    <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Customer</label>
-                                </div>
+
+                            {/* Billing Address */}
+                            <div style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem', marginBottom: '0.5rem' }}>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 1rem 0' }}>Billing Address</p>
+                                <AddressSelector
+                                    country={currentCustomer.billingCountry}
+                                    city={currentCustomer.billingCity}
+                                    address={currentCustomer.billingAddress}
+                                    onChange={(updates) => setCurrentCustomer({
+                                        ...currentCustomer,
+                                        billingCountry: updates.country,
+                                        billingCity: updates.city,
+                                        billingAddress: updates.address,
+                                    })}
+                                />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '3rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1, padding: '1rem' }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: '1rem' }} disabled={loading}>
+                            {/* Shipping Address */}
+                            <div style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '1.25rem', marginBottom: '0.5rem' }}>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 1rem 0' }}>Shipping Address</p>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+                                    <input
+                                        type="checkbox"
+                                        id="shipSame"
+                                        className="checkbox-input"
+                                        checked={!!currentCustomer.shippingSameAsBilling}
+                                        onChange={(e) => {
+                                            const checked = e.target.checked;
+                                            setCurrentCustomer({
+                                                ...currentCustomer,
+                                                shippingSameAsBilling: checked,
+                                                shippingCountry: checked ? currentCustomer.billingCountry : '',
+                                                shippingCity: checked ? currentCustomer.billingCity : '',
+                                                shippingAddress: checked ? currentCustomer.billingAddress : ''
+                                            });
+                                        }}
+                                    />
+                                    <label htmlFor="shipSame" className="form-label" style={{ marginBottom: 0 }}>Shipping same as Billing</label>
+                                </div>
+
+                                {currentCustomer.shippingSameAsBilling ? (
+                                    <div style={{ padding: '0.75rem', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                                        <p style={{ margin: 0, fontSize: '0.95rem' }}>{formatAddress(currentCustomer.shippingAddress || currentCustomer.billingAddress, currentCustomer.shippingCity || currentCustomer.billingCity, currentCustomer.shippingCountry || currentCustomer.billingCountry) || 'Not set'}</p>
+                                    </div>
+                                ) : (
+                                    <AddressSelector
+                                        country={currentCustomer.shippingCountry}
+                                        city={currentCustomer.shippingCity}
+                                        address={currentCustomer.shippingAddress}
+                                        onChange={(updates) => setCurrentCustomer({
+                                            ...currentCustomer,
+                                            shippingCountry: updates.country,
+                                            shippingCity: updates.city,
+                                            shippingAddress: updates.address,
+                                        })}
+                                    />
+                                )}
+                            </div>
+
+                            <div className="form-row-inline">
+                                <input
+                                    type="checkbox"
+                                    id="isActive"
+                                    className="checkbox-input"
+                                    checked={currentCustomer.isActive}
+                                    onChange={(e) => setCurrentCustomer({ ...currentCustomer, isActive: e.target.checked })}
+                                />
+                                <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Customer</label>
+                            </div>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block" disabled={loading}>
                                     {loading ? 'Saving...' : 'Save Details'}
                                 </button>
                             </div>

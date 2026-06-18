@@ -697,6 +697,23 @@ export const deliveryNotesApi = {
     }
     return response.json();
   },
+  update: async (id: number, note: any) => {
+    const response = await fetch(`${API_BASE_URL}/DeliveryNotes/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(note),
+    });
+    if (!response.ok) throw new Error('Failed to update delivery note');
+    return response;
+  },
+  delete: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/DeliveryNotes/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete delivery note');
+    return response;
+  },
 };
 
 export const salesInvoicesApi = {
@@ -853,4 +870,27 @@ export const usersApi = {
     if (!response.ok) throw new Error('Failed to delete user');
     return response;
   },
+};
+
+export const addressesApi = {
+  getCountries: async () => {
+    const response = await fetch(`${API_BASE_URL}/Addresses/countries`);
+    if (!response.ok) throw new Error('Failed to fetch countries');
+    return response.json();
+  },
+  getProvinces: async () => {
+    const response = await fetch(`${API_BASE_URL}/Addresses/nepal/provinces`);
+    if (!response.ok) throw new Error('Failed to fetch provinces');
+    return response.json();
+  },
+  getDistricts: async (provinceId: number) => {
+    const response = await fetch(`${API_BASE_URL}/Addresses/nepal/provinces/${provinceId}/districts`);
+    if (!response.ok) throw new Error('Failed to fetch districts');
+    return response.json();
+  },
+  getMunicipalities: async (districtId: number) => {
+    const response = await fetch(`${API_BASE_URL}/Addresses/nepal/districts/${districtId}/municipalities`);
+    if (!response.ok) throw new Error('Failed to fetch municipalities');
+    return response.json();
+  }
 };

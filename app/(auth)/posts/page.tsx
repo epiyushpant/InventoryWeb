@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../../lib/api';
 
 interface Post {
     postID: number;
@@ -26,7 +27,7 @@ export default function PostsPage() {
 
     const fetchPosts = async () => {
         try {
-            const response = await fetch('http://localhost:5201/api/posts', {
+            const response = await fetch(`${API_BASE_URL}/posts`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -44,7 +45,7 @@ export default function PostsPage() {
     const handleCreatePost = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://localhost:5201/api/posts', {
+            const response = await fetch(`${API_BASE_URL}/posts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

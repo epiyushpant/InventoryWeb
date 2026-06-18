@@ -1,0 +1,29 @@
+.form-input,
+textarea.form-input,
+select.form-input {
+  min-height: 3.25rem;
+}
+
+.form-input {
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+textarea.form-input {
+  resize: none;
+}
+
+.form-note {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.form-title {
+  font-size: 2rem;
+  margin: 0;
+}
+
+.form-description {
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}

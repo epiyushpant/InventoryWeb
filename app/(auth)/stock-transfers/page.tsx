@@ -145,17 +145,8 @@ export default function StockTransfersPage() {
             />
 
             {showModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(2, 6, 23, 0.9)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    backdropFilter: 'blur(10px)'
-                }}>
-                    <div className="auth-card glass animate-fade" style={{ maxWidth: '600px', width: '100%', padding: '3.5rem' }}>
+                <div className="modal-backdrop">
+                    <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">Initiate Transfer</h2>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
@@ -165,7 +156,7 @@ export default function StockTransfersPage() {
                                     {products.map(p => <option key={p.productID} value={p.productID}>{p.productName}</option>)}
                                 </select>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">From Warehouse</label>
                                     <select className="form-input" required value={currentTransfer.fromLocationID} onChange={e => setCurrentTransfer({...currentTransfer, fromLocationID: parseInt(e.target.value)})}>
@@ -181,7 +172,7 @@ export default function StockTransfersPage() {
                                     </select>
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Quantity to Transfer</label>
                                     <input type="number" className="form-input" min="1" required value={currentTransfer.quantity} onChange={e => setCurrentTransfer({...currentTransfer, quantity: parseInt(e.target.value)})} />
@@ -195,9 +186,9 @@ export default function StockTransfersPage() {
                                     </select>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '1.25rem', marginTop: '2rem' }}>
-                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Start Transfer</button>
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-success btn-block">Start Transfer</button>
                             </div>
                         </form>
                     </div>

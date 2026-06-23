@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { authApi, setAuthData } from '@/lib/api';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
-export default function LoginPage() {
+function LoginForm() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -13,6 +15,7 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         if (searchParams.get('registered')) {
@@ -27,10 +30,10 @@ export default function LoginPage() {
 
         try {
             const data = await authApi.login({ username, password });
-            setAuthData(data); // Stores token, role, and fullName
+            setAuthData(data);
             router.push('/home');
         } catch (err: any) {
-            setError(err.message || 'Login failed. Please check your credentials.');
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -44,7 +47,7 @@ export default function LoginPage() {
                     <p className="auth-subtitle">Log in to access the inventory system.</p>
                 </div>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                     <div className="form-group">
                         <label className="form-label">Username</label>
                         <input
@@ -81,6 +84,8 @@ export default function LoginPage() {
                         </div>
                     )}
 
+                    <FormErrors errors={validationErrors} />
+
                     <button
                         type="submit"
                         className="btn btn-primary"
@@ -92,12 +97,20 @@ export default function LoginPage() {
                 </form>
 
                 <p style={{ marginTop: '2.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    Don&apos;t have an account?
+                    Don&apos;t have an account?{' '}
                     <Link href="/register" style={{ color: 'var(--primary)', fontWeight: '700', textDecoration: 'underline', textUnderlineOffset: '4px' }}>
                         Register here
                     </Link>
                 </p>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
     );
 }

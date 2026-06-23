@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { purchaseOrderDetailsApi, purchaseOrdersApi, productsApi, suppliersApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface PurchaseOrderDetail {
     poDetailID: number;
@@ -49,6 +51,7 @@ export default function PurchaseOrderDetailsPage() {
         unitPrice: 0
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadInitialData();
@@ -160,7 +163,7 @@ export default function PurchaseOrderDetailsPage() {
             setIsEditing(false);
             await loadDetails();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -293,7 +296,7 @@ export default function PurchaseOrderDetailsPage() {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Purchase Order ID</label>
@@ -382,6 +385,7 @@ export default function PurchaseOrderDetailsPage() {
                                 </p>
                             </div>
 
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

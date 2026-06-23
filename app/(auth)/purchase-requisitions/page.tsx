@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { productsApi, purchaseRequisitionsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface PurchaseRequisition {
     prid: number;
@@ -24,6 +26,7 @@ export default function PurchaseRequisitionsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
     const [currentPR, setCurrentPR] = useState<Partial<PurchaseRequisition>>({
         requestedBy: '',
         productID: 0,
@@ -55,6 +58,7 @@ export default function PurchaseRequisitionsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             if (currentPR.prid) {
                 await purchaseRequisitionsApi.update(currentPR.prid, currentPR);
@@ -73,7 +77,7 @@ export default function PurchaseRequisitionsPage() {
             });
             await loadData();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -171,7 +175,7 @@ export default function PurchaseRequisitionsPage() {
                 <div className="modal-backdrop">
                     <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">New Requisition</h2>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">
                                 <label className="form-label">Requested By</label>
                                 <input type="text" className="form-input" required value={currentPR.requestedBy} onChange={e => setCurrentPR({...currentPR, requestedBy: e.target.value})} placeholder="Your Name" />
@@ -193,6 +197,7 @@ export default function PurchaseRequisitionsPage() {
                                     <input type="date" className="form-input" required value={currentPR.requiredDate} onChange={e => setCurrentPR({...currentPR, requiredDate: e.target.value})} />
                                 </div>
                             </div>
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block">Submit Request</button>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { productsApi, deliveryNotesApi, salesApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface DeliveryNote {
     deliveryID: number;
@@ -26,6 +28,7 @@ export default function DeliveryNotesPage() {
     const [error, setError] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
     const [currentDelivery, setCurrentDelivery] = useState<Partial<DeliveryNote>>({
         saleID: 0,
         productID: 0,
@@ -59,6 +62,7 @@ export default function DeliveryNotesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             if (isEditing && currentDelivery.deliveryID) {
                 await deliveryNotesApi.update(currentDelivery.deliveryID, currentDelivery);
@@ -76,7 +80,7 @@ export default function DeliveryNotesPage() {
             setIsEditing(false);
             await loadData();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -148,15 +152,15 @@ export default function DeliveryNotesPage() {
                                 {isEditing ? 'Modify shipment and transport logistics.' : 'Create a new outgoing shipment record.'}
                             </p>
                         </div>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Sales Order Ref ID</label>
-                                    <select 
-                                        className="form-input" 
-                                        required 
-                                        value={currentDelivery.saleID || 0} 
-                                        onChange={e => setCurrentDelivery({...currentDelivery, saleID: parseInt(e.target.value)})}
+                                    <select
+                                        className="form-input"
+                                        required
+                                        value={currentDelivery.saleID || 0}
+                                        onChange={e => setCurrentDelivery({ ...currentDelivery, saleID: parseInt(e.target.value) })}
                                     >
                                         <option value={0} disabled>Select a Sales Order</option>
                                         {sales.map(s => (
@@ -168,11 +172,11 @@ export default function DeliveryNotesPage() {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Product</label>
-                                    <select 
-                                        className="form-input" 
-                                        required 
-                                        value={currentDelivery.productID || 0} 
-                                        onChange={e => setCurrentDelivery({...currentDelivery, productID: parseInt(e.target.value)})}
+                                    <select
+                                        className="form-input"
+                                        required
+                                        value={currentDelivery.productID || 0}
+                                        onChange={e => setCurrentDelivery({ ...currentDelivery, productID: parseInt(e.target.value) })}
                                     >
                                         <option value={0} disabled>Select Product</option>
                                         {products.map(p => (
@@ -186,36 +190,37 @@ export default function DeliveryNotesPage() {
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Shipped Qty</label>
-                                    <input 
-                                        type="number" 
-                                        className="form-input" 
-                                        min="1" 
-                                        required 
-                                        value={currentDelivery.shippedQuantity || ''} 
-                                        onChange={e => setCurrentDelivery({...currentDelivery, shippedQuantity: parseInt(e.target.value) || 0})} 
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        min="1"
+                                        required
+                                        value={currentDelivery.shippedQuantity || ''}
+                                        onChange={e => setCurrentDelivery({ ...currentDelivery, shippedQuantity: parseInt(e.target.value) || 0 })}
                                     />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Shipment Date</label>
-                                    <input 
-                                        type="date" 
-                                        className="form-input" 
-                                        required 
-                                        value={currentDelivery.shipmentDate || ''} 
-                                        onChange={e => setCurrentDelivery({...currentDelivery, shipmentDate: e.target.value})} 
+                                    <input
+                                        type="date"
+                                        className="form-input"
+                                        required
+                                        value={currentDelivery.shipmentDate || ''}
+                                        onChange={e => setCurrentDelivery({ ...currentDelivery, shipmentDate: e.target.value })}
                                     />
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Transport Details</label>
-                                <input 
-                                    type="text" 
-                                    className="form-input" 
-                                    value={currentDelivery.transportDetails || ''} 
-                                    onChange={e => setCurrentDelivery({...currentDelivery, transportDetails: e.target.value})} 
-                                    placeholder="e.g. DHL tracking #12345" 
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={currentDelivery.transportDetails || ''}
+                                    onChange={e => setCurrentDelivery({ ...currentDelivery, transportDetails: e.target.value })}
+                                    placeholder="e.g. DHL tracking #12345"
                                 />
                             </div>
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

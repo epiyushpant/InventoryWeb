@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { salesApi, customersApi, productsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useRouter } from 'next/navigation';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface SaleDetail {
     productID: number;
@@ -43,6 +45,7 @@ export default function SalesPage() {
         saleDetails: []
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
@@ -83,6 +86,7 @@ export default function SalesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
                     const saleToSave = { ...currentSale };
         delete saleToSave.totalAmount;
@@ -101,7 +105,7 @@ export default function SalesPage() {
             setIsEditing(false);
             await loadSales();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -263,7 +267,7 @@ export default function SalesPage() {
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Log a new sale in the system.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Customer</label>
@@ -430,6 +434,7 @@ export default function SalesPage() {
                                 </div>
                             </div>
 
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

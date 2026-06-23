@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { productsApi, locationsApi, stockAdjustmentsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface StockAdjustment {
     adjustmentID: number;
@@ -33,7 +35,6 @@ export default function StockAdjustmentsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const [isEditing, setIsEditing] = useState(false);
     const [currentAdjustment, setCurrentAdjustment] = useState<Partial<StockAdjustment>>({
         productID: 0,
         locationID: 0,
@@ -42,6 +43,7 @@ export default function StockAdjustmentsPage() {
         reason: ''
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadInitialData();
@@ -68,13 +70,14 @@ export default function StockAdjustmentsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             await stockAdjustmentsApi.create(currentAdjustment);
             alert('Stock adjustment submitted successfully.');
             setShowModal(false);
             await loadInitialData();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -126,15 +129,13 @@ export default function StockAdjustmentsPage() {
                 keyField="adjustmentID"
                 loading={loading}
                 error={error}
-                onEdit={() => {}}
-                onDelete={() => {}}
             />
 
             {showModal && (
                 <div className="modal-backdrop">
                     <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">Create Adjustment</h2>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">
                                 <label className="form-label">Product</label>
                                 <select className="form-input" required value={currentAdjustment.productID} onChange={e => setCurrentAdjustment({...currentAdjustment, productID: parseInt(e.target.value)})}>
@@ -166,6 +167,7 @@ export default function StockAdjustmentsPage() {
                                 <label className="form-label">Reason</label>
                                 <textarea className="form-input" rows={2} required value={currentAdjustment.reason} onChange={e => setCurrentAdjustment({...currentAdjustment, reason: e.target.value})} placeholder="e.g. Damage during handling" />
                             </div>
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block">Submit Adjustment</button>

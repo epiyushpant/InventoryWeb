@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -15,6 +17,7 @@ export default function RegisterPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,7 +32,7 @@ export default function RegisterPage() {
             await authApi.register(formData);
             router.push('/login?registered=true');
         } catch (err: any) {
-            setError(err.message || 'Registration failed. Please try again.');
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -43,7 +46,7 @@ export default function RegisterPage() {
                     <p className="auth-subtitle">Create your account to access the inventory system.</p>
                 </div>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                     <div className="form-group">
                         <label className="form-label">Name</label>
                         <input
@@ -100,6 +103,8 @@ export default function RegisterPage() {
                             <span>⚠️</span> {error}
                         </div>
                     )}
+
+                    <FormErrors errors={validationErrors} />
 
                     <button
                         type="submit"

@@ -31,6 +31,10 @@ export interface LookupTableProps<T> {
     searchPlaceholder?: string;
     filterFunction?: (item: T, term: string) => boolean;
     onFilteredDataChange?: (filteredData: T[]) => void;
+    extraHeaderActions?: React.ReactNode;
+    selectable?: boolean;
+    selectedItems?: T[];
+    onSelectionChange?: (selectedItems: T[]) => void;
 }
 
 export default function LookupTable<T>({
@@ -55,9 +59,35 @@ export default function LookupTable<T>({
     searchPlaceholder = 'Search…',
     filterFunction,
     onFilteredDataChange,
+    extraHeaderActions,
+    selectable = false,
+    selectedItems,
+    onSelectionChange,
 }: LookupTableProps<T>) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [internalSelectedItems, setInternalSelectedItems] = useState<T[]>([]);
+
     const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const selected = selectedItems ?? internalSelectedItems;
+    const selectedKeys = useMemo(() => new Set(selected.map((item) => item[keyField])), [selected, keyField]);
+
+    const handleSelect = (item: T, checked: boolean) => {
+        let next: T[];
+        if (checked) {
+            next = [...selected, item];
+        } else {
+            next = selected.filter((i) => i[keyField] !== item[keyField]);
+        }
+        if (selectedItems === undefined) setInternalSelectedItems(next);
+        if (onSelectionChange) onSelectionChange(next);
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        const next = checked ? [...filteredData] : [];
+        if (selectedItems === undefined) setInternalSelectedItems(next);
+        if (onSelectionChange) onSelectionChange(next);
+    };
 
     const getTextFromNode = (node: React.ReactNode): string => {
         if (node === null || node === undefined || node === false) return '';
@@ -103,7 +133,7 @@ export default function LookupTable<T>({
         }
     }, [filteredData, onFilteredDataChange]);
 
-    const totalColumns = hideActions ? columns.length : columns.length + 1;
+    const totalColumns = (hideActions ? columns.length : columns.length + 1) + (selectable ? 1 : 0);
 
     return (
         <div className="animate-fade page-section">
@@ -113,14 +143,17 @@ export default function LookupTable<T>({
                         {title && <h1 className="auth-title page-heading">{title}</h1>}
                         {subtitle && <p className="page-subtitle">{subtitle}</p>}
                     </div>
-                    {onAdd && addButtonLabel && (
-                        <button
-                            className="btn btn-primary btn-wide"
-                            onClick={onAdd}
-                        >
-                            <span style={{ fontSize: '1.2rem' }}>+</span> {addButtonLabel}
-                        </button>
-                    )}
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        {extraHeaderActions}
+                        {onAdd && addButtonLabel && (
+                            <button
+                                className="btn btn-primary btn-wide"
+                                onClick={onAdd}
+                            >
+                                <span style={{ fontSize: '1.2rem' }}>+</span> {addButtonLabel}
+                            </button>
+                        )}
+                    </div>
                 </header>
             )}
 
@@ -147,13 +180,23 @@ export default function LookupTable<T>({
                 <table className="premium-table">
                     <thead>
                         <tr>
+                            {selectable && (
+                                <th style={{ width: '40px', textAlign: 'center', borderRadius: '20px 0 0 0' }}>
+                                    <input
+                                        type="checkbox"
+                                        className="checkbox-input"
+                                        checked={filteredData.length > 0 && selected.length === filteredData.length}
+                                        onChange={(e) => handleSelectAll(e.target.checked)}
+                                    />
+                                </th>
+                            )}
                             {columns.map((col, i) => (
                                 <th
                                     key={col.header}
                                     style={{
                                         width: col.width ? (typeof col.width === 'number' ? `${col.width}px` : col.width) : undefined,
                                         textAlign: col.align || 'left',
-                                        borderRadius: i === 0 ? (hideActions ? '20px 0 0 0' : '20px 0 0 0') : (i === columns.length - 1 && hideActions ? '0 20px 0 0' : undefined),
+                                        borderRadius: (i === 0 && !selectable) ? (hideActions ? '20px 0 0 0' : '20px 0 0 0') : (i === columns.length - 1 && hideActions ? '0 20px 0 0' : undefined),
                                     }}
                                 >
                                     {col.header}
@@ -172,12 +215,22 @@ export default function LookupTable<T>({
                             </td></tr>
                         ) : filteredData.length === 0 ? (
                             <tr><td colSpan={totalColumns} className="empty-state">
-                                <p className="empty-title">No matching records found.</p>
+                                <p className="empty-title">{searchTerm ? "No matching records found." : emptyTitle}</p>
                                 <p>{searchTerm ? `Try another search term.` : emptyText}</p>
                             </td></tr>
                         ) : (
                             filteredData.map((item, idx) => (
                                 <tr key={String(item[keyField]) || idx}>
+                                    {selectable && (
+                                        <td style={{ width: '40px', textAlign: 'center' }}>
+                                            <input
+                                                type="checkbox"
+                                                className="checkbox-input"
+                                                checked={selectedKeys.has(item[keyField])}
+                                                onChange={(e) => handleSelect(item, e.target.checked)}
+                                            />
+                                        </td>
+                                    )}
                                     {columns.map((col) => (
                                         <td key={col.header} style={{ width: col.width ? (typeof col.width === 'number' ? `${col.width}px` : col.width) : undefined, textAlign: col.align || 'left' }}>{col.render(item)}</td>
                                     ))}

@@ -5,6 +5,8 @@ import { suppliersApi } from '@/lib/api';
 import { formatAddress } from '@/lib/address';
 import LookupTable, { Column } from '@/components/LookupTable';
 import AddressSelector from '@/components/AddressSelector';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface Supplier {
     supplierID: number;
@@ -89,6 +91,7 @@ export default function SuppliersPage() {
         isActive: true
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadSuppliers();
@@ -108,6 +111,7 @@ export default function SuppliersPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             if (isEditing && currentSupplier.supplierID) {
                 await suppliersApi.update(currentSupplier.supplierID, currentSupplier);
@@ -130,7 +134,7 @@ export default function SuppliersPage() {
             setIsEditing(false);
             await loadSuppliers();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -206,7 +210,7 @@ export default function SuppliersPage() {
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Update your supplier database.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Company Name</label>
@@ -297,6 +301,7 @@ export default function SuppliersPage() {
                                 />
                                 <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Supplier</label>
                             </div>
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

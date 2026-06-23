@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { stockMovementsApi, productsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface StockMovement {
     movementID: number;
@@ -35,6 +37,7 @@ export default function StockMovementsPage() {
         reference: ''
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadInitialData();
@@ -72,6 +75,7 @@ export default function StockMovementsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             const payload = {
                 ...currentMovement,
@@ -93,7 +97,7 @@ export default function StockMovementsPage() {
             setIsEditing(false);
             await loadMovements();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -223,7 +227,7 @@ export default function StockMovementsPage() {
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Log a stock addition or deduction.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Product</label>
@@ -292,6 +296,7 @@ export default function StockMovementsPage() {
                                 />
                             </div>
 
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

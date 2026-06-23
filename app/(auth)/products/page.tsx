@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { productsApi, categoriesApi, suppliersApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface Product {
     productID: number;
@@ -50,6 +52,7 @@ export default function ProductsPage() {
         isActive: true
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadInitialData();
@@ -92,6 +95,7 @@ export default function ProductsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             if (isEditing && currentProduct.productID) {
                 await productsApi.update(currentProduct.productID, currentProduct);
@@ -114,7 +118,7 @@ export default function ProductsPage() {
             setIsEditing(false);
             await loadProducts();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -267,7 +271,7 @@ export default function ProductsPage() {
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configure product details, category, and supplier matching.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Product Name</label>
@@ -406,6 +410,8 @@ export default function ProductsPage() {
                                     <label htmlFor="isActive" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>Is Active</label>
                                 </div>
                             </div>
+                            
+                            <FormErrors errors={validationErrors} />
 
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>

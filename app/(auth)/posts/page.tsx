@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../../lib/api';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface Post {
     postID: number;
@@ -20,6 +22,7 @@ export default function PostsPage() {
     const [error, setError] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [newPost, setNewPost] = useState({ title: '', content: '' });
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         fetchPosts();
@@ -57,9 +60,11 @@ export default function PostsPage() {
                 setShowForm(false);
                 setNewPost({ title: '', content: '' });
                 fetchPosts();
+            } else {
+                throw new Error('Failed to publish announcement');
             }
         } catch (err) {
-            console.error(err);
+            handleApiError(err);
         }
     };
 
@@ -83,7 +88,7 @@ export default function PostsPage() {
 
             {showForm && (
                 <div className="glass animate-fade" style={{ margin: '0 1rem 3rem 1rem', padding: '2rem', borderRadius: '24px' }}>
-                    <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <form onSubmit={(e) => validateAndSubmit(e, handleCreatePost)} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Title</label>
                             <input 
@@ -108,7 +113,8 @@ export default function PostsPage() {
                             />
                         </div>
                         <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start' }}>Publish Post</button>
-                    </form>
+                        <FormErrors errors={validationErrors} />
+                        </form>
                 </div>
             )}
 

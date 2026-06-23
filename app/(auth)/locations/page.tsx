@@ -5,6 +5,8 @@ import { locationsApi } from '@/lib/api';
 import { formatAddress } from '@/lib/address';
 import LookupTable, { Column } from '@/components/LookupTable';
 import AddressSelector from '@/components/AddressSelector';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface Location {
     locationID: number;
@@ -30,6 +32,7 @@ export default function LocationsPage() {
         isActive: true
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadLocations();
@@ -50,6 +53,7 @@ export default function LocationsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             if (isEditing && currentLocation.locationID) {
                 await locationsApi.update(currentLocation.locationID, currentLocation);
@@ -70,7 +74,7 @@ export default function LocationsPage() {
             setIsEditing(false);
             await loadLocations();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -188,7 +192,7 @@ export default function LocationsPage() {
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Define a new warehouse or storefront.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Warehouse Name</label>
@@ -243,7 +247,7 @@ export default function LocationsPage() {
                                     <input
                                         type="text"
                                         className="form-input"
-                                        placeholder="+1 234 567 890"
+                                        placeholder="+977"
                                         value={currentLocation.contactNo}
                                         onChange={(e) => setCurrentLocation({ ...currentLocation, contactNo: e.target.value })}
                                     />
@@ -261,6 +265,7 @@ export default function LocationsPage() {
                                 <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Warehouse</label>
                             </div>
 
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { productsApi, locationsApi, grnsApi, purchaseOrdersApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface GRN {
     grnid: number;
@@ -32,6 +34,7 @@ export default function GRNsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
     const [currentGRN, setCurrentGRN] = useState<Partial<GRN>>({
         purchaseOrderID: 0,
         productID: 0,
@@ -68,14 +71,10 @@ export default function GRNsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
-            if (currentGRN.grnid) {
-                await grnsApi.update(currentGRN.grnid, currentGRN);
-                alert('GRN updated successfully.');
-            } else {
-                await grnsApi.create(currentGRN);
-                alert('GRN saved successfully. Inventory updated.');
-            }
+            await grnsApi.create(currentGRN);
+            alert('GRN saved successfully. Inventory updated.');
             setShowModal(false);
             setCurrentGRN({
                 purchaseOrderID: 0,
@@ -87,28 +86,9 @@ export default function GRNsPage() {
             });
             await loadData();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleEdit = (grn: GRN) => {
-        const editGRN = { ...grn };
-        if (editGRN.receivedDate?.includes('T')) {
-            editGRN.receivedDate = editGRN.receivedDate.split('T')[0];
-        }
-        setCurrentGRN(editGRN);
-        setShowModal(true);
-    };
-
-    const handleDelete = async (grn: GRN) => {
-        if (!confirm('Are you sure you want to delete this GRN?')) return;
-        try {
-            await grnsApi.delete(grn.grnid);
-            await loadData();
-        } catch (err: any) {
-            setError(err.message);
         }
     };
 
@@ -134,15 +114,13 @@ export default function GRNsPage() {
                 keyField="grnid"
                 loading={loading}
                 error={error}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
             />
 
             {showModal && (
                 <div className="modal-backdrop">
                     <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">Receive Shipment</h2>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">
                                 <label className="form-label">Purchase Order</label>
                                 <select
@@ -203,6 +181,7 @@ export default function GRNsPage() {
                                     {locations.map(l => <option key={l.locationID} value={l.locationID}>{l.warehouseName}</option>)}
                                 </select>
                             </div>
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block">Save GRN</button>

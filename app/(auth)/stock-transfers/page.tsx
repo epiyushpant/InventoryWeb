@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { productsApi, locationsApi, stockTransfersApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface StockTransfer {
     transferID: number;
@@ -31,6 +33,7 @@ export default function StockTransfersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
     const [isEditing, setIsEditing] = useState(false);
     const [currentTransfer, setCurrentTransfer] = useState<Partial<StockTransfer>>({
         fromLocationID: 0,
@@ -65,6 +68,7 @@ export default function StockTransfersPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         if (currentTransfer.fromLocationID === currentTransfer.toLocationID) {
             alert('Source and destination warehouses cannot be the same.');
             return;
@@ -82,7 +86,7 @@ export default function StockTransfersPage() {
             setIsEditing(false);
             await loadData();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -148,7 +152,7 @@ export default function StockTransfersPage() {
                 <div className="modal-backdrop">
                     <div className="auth-card glass animate-fade modal-card">
                         <h2 className="auth-title">Initiate Transfer</h2>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">
                                 <label className="form-label">Product</label>
                                 <select className="form-input" required value={currentTransfer.productID} onChange={e => setCurrentTransfer({...currentTransfer, productID: parseInt(e.target.value)})}>
@@ -186,6 +190,7 @@ export default function StockTransfersPage() {
                                     </select>
                                 </div>
                             </div>
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block">Start Transfer</button>

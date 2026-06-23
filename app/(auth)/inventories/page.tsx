@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { inventoriesApi, productsApi, locationsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface Inventory {
     inventoryID: number;
@@ -43,6 +45,7 @@ export default function InventoriesPage() {
         locationID: 0 
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadInitialData();
@@ -60,8 +63,8 @@ export default function InventoriesPage() {
             setProducts(productsData || []);
             setLocations(locationsData || []);
 
-            let initialLoc = locationsData?.length > 0 ? locationsData[0].locationID : 0;
-            let initialProd = productsData?.length > 0 ? productsData[0].productID : 0;
+            const initialLoc = locationsData?.length > 0 ? locationsData[0].locationID : 0;
+            const initialProd = productsData?.length > 0 ? productsData[0].productID : 0;
 
             if (currentInventory.productID === 0) {
                 setCurrentInventory(prev => ({ ...prev, productID: initialProd, locationID: initialLoc }));
@@ -85,6 +88,7 @@ export default function InventoriesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             const payload = {
                 ...currentInventory,
@@ -107,7 +111,7 @@ export default function InventoriesPage() {
             setIsEditing(false);
             await loadInventories();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -227,7 +231,7 @@ export default function InventoriesPage() {
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Update stock levels and location for products.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">
                                 <label className="form-label">Product</label>
                                 <select
@@ -298,16 +302,8 @@ export default function InventoriesPage() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="form-row-inline">
-                                <input
-                                    type="checkbox"
-                                    id="isActive"
-                                    className="checkbox-input"
-                                    checked={currentInventory.isActive}
-                                    onChange={(e) => setCurrentInventory({ ...currentInventory, isActive: e.target.checked })}
-                                />
-                                <label htmlFor="isActive" className="form-label" style={{ marginBottom: 0 }}>Active Stock</label>
-                            </div>
+
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

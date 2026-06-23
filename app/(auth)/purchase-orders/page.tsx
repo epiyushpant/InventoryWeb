@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { purchaseOrdersApi, suppliersApi, productsApi, purchaseRequisitionsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface PurchaseOrderDetail {
     productID: number;
@@ -44,6 +46,7 @@ export default function PurchaseOrdersPage() {
         purchaseOrderDetails: []
     });
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
     useEffect(() => {
         loadInitialData();
@@ -85,6 +88,7 @@ export default function PurchaseOrdersPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
         try {
             // Remove totalAmount from the data to send - it will be calculated by backend
             const { totalAmount, ...orderToSave } = currentOrder;
@@ -105,7 +109,7 @@ export default function PurchaseOrdersPage() {
             setIsEditing(false);
             await loadOrders();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -237,7 +241,7 @@ export default function PurchaseOrdersPage() {
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configure purchase order details.</p>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Purchase Requisition (Optional)</label>
@@ -413,6 +417,7 @@ export default function PurchaseOrdersPage() {
                                 </div>
                             </div>
 
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block" disabled={loading}>

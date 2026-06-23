@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { salesApi, salesInvoicesApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import FormErrors from '@/components/FormErrors';
 
 interface SalesInvoice {
     invoiceID: number;
@@ -20,6 +22,7 @@ export default function SalesInvoicesPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
     const [currentInvoice, setCurrentInvoice] = useState<Partial<SalesInvoice>>({
         saleID: 0,
         taxAmount: 0,
@@ -50,6 +53,7 @@ export default function SalesInvoicesPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         if (!currentInvoice.saleID || currentInvoice.saleID === 0) {
             alert('Please select a sales order first.');
             return;
@@ -61,7 +65,7 @@ export default function SalesInvoicesPage() {
             setShowModal(false);
             await loadData();
         } catch (err: any) {
-            setError(err.message);
+            handleApiError(err);
         } finally {
             setLoading(false);
         }
@@ -235,7 +239,7 @@ export default function SalesInvoicesPage() {
                             <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>✕</button>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
                                 <div className="form-group">
                                     <label className="form-label">Sales Order Reference</label>
@@ -341,6 +345,7 @@ export default function SalesInvoicesPage() {
                                 </div>
                             </div>
 
+                            <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-success btn-block">Generate & Save Bill</button>

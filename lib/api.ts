@@ -289,11 +289,18 @@ export const purchaseOrderDetailsApi = {
   },
 };
 
-export const setAuthData = (data: { token: string; role?: string; fullName?: string }) => {
+export const setAuthData = (data: { token: string; role?: string; fullName?: string; userName?: string }) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('token', data.token);
     if (data.role) localStorage.setItem('userRole', data.role);
     if (data.fullName) localStorage.setItem('fullName', data.fullName);
+    if (data.userName) localStorage.setItem('userName', data.userName);
+  }
+};
+
+export const setUserFullName = (fullName: string) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('fullName', fullName);
   }
 };
 
@@ -316,6 +323,31 @@ export const getUserFullName = () => {
     return localStorage.getItem('fullName') || '';
   }
   return '';
+};
+
+export const getUserName = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('userName') || '';
+  }
+  return '';
+};
+
+export const profileApi = {
+  getMe: async () => {
+    return apiFetch(`${API_BASE_URL}/Profile/me`, { headers: getAuthHeaders() }, 'Failed to load profile');
+  },
+  update: async (data: any) => {
+    return apiFetch(`${API_BASE_URL}/Profile/me`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) }, 'Failed to update profile');
+  },
+  changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+    return apiFetch(`${API_BASE_URL}/Profile/change-password`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) }, 'Failed to change password');
+  },
+  logoutAll: async () => {
+    return apiFetch(`${API_BASE_URL}/Profile/logout-all`, { method: 'POST', headers: getAuthHeaders() }, 'Failed to sign out other sessions');
+  },
+  deleteAccount: async () => {
+    return apiFetch(`${API_BASE_URL}/Profile/me`, { method: 'DELETE', headers: getAuthHeaders() }, 'Failed to delete account');
+  },
 };
 
 export const addressesApi = {
@@ -558,6 +590,7 @@ export const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('fullName');
+    localStorage.removeItem('userName');
   }
 };
 

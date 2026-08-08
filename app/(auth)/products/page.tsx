@@ -14,14 +14,48 @@ interface Product {
     categoryID: number;
     supplierID: number;
     sku?: string;
+    barcode?: string;
+    brand?: string;
+    color?: string;
     description?: string;
+    imageUrl?: string;
     unitOfMeasure?: string;
     costPrice: number;
     unitPrice: number; // Selling Price
     reorderLevel?: number;
+    maxStockLevel?: number;
+    weightKg?: number;
+    lengthCm?: number;
+    widthCm?: number;
+    heightCm?: number;
+    warrantyPeriod?: string;
     isTaxable?: boolean;
     isActive: boolean;
 }
+
+const EMPTY_PRODUCT: Partial<Product> = {
+    productName: '',
+    categoryID: 0,
+    supplierID: 0,
+    sku: '',
+    barcode: '',
+    brand: '',
+    color: '',
+    description: '',
+    imageUrl: '',
+    unitOfMeasure: 'PCS',
+    costPrice: 0,
+    unitPrice: 0,
+    reorderLevel: 0,
+    maxStockLevel: 0,
+    weightKg: undefined,
+    lengthCm: undefined,
+    widthCm: undefined,
+    heightCm: undefined,
+    warrantyPeriod: '',
+    isTaxable: true,
+    isActive: true,
+};
 
 interface Category {
     categoryID: number;
@@ -33,6 +67,22 @@ interface Supplier {
     supplierName: string;
 }
 
+function SectionHeader({ title, hint }: { title: string; hint?: string }) {
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'baseline', gap: '0.75rem',
+            margin: '1.75rem 0 1rem', paddingBottom: '0.5rem',
+            borderBottom: '1px solid rgba(255,255,255,0.08)'
+        }}>
+            <h3 style={{
+                margin: 0, fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.08em',
+                textTransform: 'uppercase', color: 'var(--primary)'
+            }}>{title}</h3>
+            {hint && <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{hint}</span>}
+        </div>
+    );
+}
+
 export default function ProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -42,19 +92,7 @@ export default function ProductsPage() {
     const [error, setError] = useState('');
 
     const [isEditing, setIsEditing] = useState(false);
-    const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({
-        productName: '',
-        categoryID: 0,
-        supplierID: 0,
-        sku: '',
-        description: '',
-        unitOfMeasure: 'PCS',
-        costPrice: 0,
-        unitPrice: 0,
-        reorderLevel: 0,
-        isTaxable: true,
-        isActive: true
-    });
+    const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({ ...EMPTY_PRODUCT });
     const [showModal, setShowModal] = useState(false);
     const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
 
@@ -108,17 +146,9 @@ export default function ProductsPage() {
             }
             setShowModal(false);
             setCurrentProduct({
-                productName: '',
+                ...EMPTY_PRODUCT,
                 categoryID: categories.length > 0 ? categories[0].categoryID : 0,
                 supplierID: suppliers.length > 0 ? suppliers[0].supplierID : 0,
-                sku: '',
-                description: '',
-                unitOfMeasure: 'PCS',
-                costPrice: 0,
-                unitPrice: 0,
-                reorderLevel: 0,
-                isTaxable: true,
-                isActive: true
             });
             setIsEditing(false);
             await loadProducts();
@@ -148,17 +178,47 @@ export default function ProductsPage() {
     const getCategoryName = (id: number) => categories.find(c => c.categoryID === id)?.categoryName || 'Unknown';
     const getSupplierName = (id: number) => suppliers.find(s => s.supplierID === id)?.supplierName || 'Unknown';
 
+    const cost = currentProduct.costPrice || 0;
+    const sell = currentProduct.unitPrice || 0;
+    const marginPct = sell > 0 ? ((sell - cost) / sell) * 100 : null;
+
     const columns: Column<Product>[] = [
         {
-            header: 'Product Name',
+            header: 'Product',
             render: (p) => (
-                <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{p.productName}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{
+                        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                        overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                        {p.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.imageUrl} alt={p.productName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                {p.productName?.charAt(0).toUpperCase() || '?'}
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>{p.productName}</p>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                            {p.brand ? p.brand : 'No brand'}{p.color ? ` · ${p.color}` : ''}
+                        </p>
+                    </div>
+                </div>
             ),
         },
         {
-            header: 'SKU',
+            header: 'SKU / Barcode',
             render: (p) => (
-                <code style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 600 }}>{p.sku || '-'}</code>
+                <div>
+                    <code style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 600 }}>{p.sku || '-'}</code>
+                    {p.barcode && (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0', fontFamily: 'monospace' }}>{p.barcode}</p>
+                    )}
+                </div>
             ),
         },
         {
@@ -213,6 +273,9 @@ export default function ProductsPage() {
                     <p style={{ fontWeight: 600, margin: 0, color: p.reorderLevel && p.reorderLevel > 0 ? 'var(--text-main)' : 'var(--error)' }}>
                         Min: {p.reorderLevel || 0}
                     </p>
+                    {p.maxStockLevel ? (
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>Max: {p.maxStockLevel}</p>
+                    ) : null}
                 </div>
             ),
         },
@@ -235,17 +298,9 @@ export default function ProductsPage() {
                 onAdd={() => {
                     setIsEditing(false);
                     setCurrentProduct({
-                        productName: '',
+                        ...EMPTY_PRODUCT,
                         categoryID: categories.length > 0 ? categories[0].categoryID : 0,
                         supplierID: suppliers.length > 0 ? suppliers[0].supplierID : 0,
-                        sku: '',
-                        description: '',
-                        unitOfMeasure: 'PCS',
-                        costPrice: 0,
-                        unitPrice: 0,
-                        reorderLevel: 0,
-                        isTaxable: true,
-                        isActive: true
                     });
                     setShowModal(true);
                 }}
@@ -263,16 +318,17 @@ export default function ProductsPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="glass animate-fade modal-card">
-                        <div style={{ marginBottom: '2.5rem' }}>
+                    <div className="glass animate-fade modal-card modal-card--wide">
+                        <div style={{ marginBottom: '2rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Product' : 'Add New Product'}</h2>
-                            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configure product details, category, and supplier matching.</p>
+                            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configure product details, pricing, inventory levels, and physical attributes.</p>
                         </div>
 
                         <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
+                            <SectionHeader title="Product Details" hint="Identification & classification" />
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
-                                    <label className="form-label">Product Name</label>
+                                    <label className="form-label">Product Name <span style={{ color: 'var(--error)' }}>*</span></label>
                                     <input
                                         type="text"
                                         className="form-input"
@@ -283,6 +339,19 @@ export default function ProductsPage() {
                                     />
                                 </div>
                                 <div className="form-group">
+                                    <label className="form-label">Brand</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g. Logitech"
+                                        value={currentProduct.brand}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, brand: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-grid form-grid-3">
+                                <div className="form-group">
                                     <label className="form-label">SKU</label>
                                     <input
                                         type="text"
@@ -292,23 +361,31 @@ export default function ProductsPage() {
                                         onChange={(e) => setCurrentProduct({ ...currentProduct, sku: e.target.value })}
                                     />
                                 </div>
-                            </div>
-                            
-                            <div className="form-group">
-                                <label className="form-label">Description</label>
-                                <textarea
-                                    className="form-input"
-                                    rows={3}
-                                    placeholder="Product description..."
-                                    style={{ resize: 'none' }}
-                                    value={currentProduct.description}
-                                    onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value })}
-                                />
+                                <div className="form-group">
+                                    <label className="form-label">Barcode</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g. 8901234567890"
+                                        value={currentProduct.barcode}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, barcode: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Color</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g. Black"
+                                        value={currentProduct.color}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, color: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
-                                    <label className="form-label">Category</label>
+                                    <label className="form-label">Category <span style={{ color: 'var(--error)' }}>*</span></label>
                                     <select
                                         className="form-input"
                                         required
@@ -324,7 +401,7 @@ export default function ProductsPage() {
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">Supplier</label>
+                                    <label className="form-label">Supplier <span style={{ color: 'var(--error)' }}>*</span></label>
                                     <select
                                         className="form-input"
                                         required
@@ -340,9 +417,48 @@ export default function ProductsPage() {
                                 </div>
                             </div>
 
+                            <div className="form-group">
+                                <label className="form-label">Description</label>
+                                <textarea
+                                    className="form-input"
+                                    rows={3}
+                                    placeholder="Product description..."
+                                    style={{ resize: 'none' }}
+                                    value={currentProduct.description}
+                                    onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value })}
+                                />
+                            </div>
+
+                            <SectionHeader title="Pricing & Inventory" hint="Cost, sale price & stock thresholds" />
                             <div className="form-grid form-grid-3">
                                 <div className="form-group">
-                                    <label className="form-label">UOM</label>
+                                    <label className="form-label">Cost Price (Rs.) <span style={{ color: 'var(--error)' }}>*</span></label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        required
+                                        value={currentProduct.costPrice}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, costPrice: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Selling Price (Rs.) <span style={{ color: 'var(--error)' }}>*</span></label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        required
+                                        value={currentProduct.unitPrice}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, unitPrice: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Unit of Measure</label>
                                     <select
                                         className="form-input"
                                         required
@@ -356,35 +472,23 @@ export default function ProductsPage() {
                                         <option value="PKT">PKT</option>
                                     </select>
                                 </div>
-                                <div className="form-group">
-                                    <label className="form-label">Cost Price (Rs.)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        className="form-input"
-                                        placeholder="0.00"
-                                        required
-                                        value={currentProduct.costPrice}
-                                        onChange={(e) => setCurrentProduct({ ...currentProduct, costPrice: parseFloat(e.target.value) || 0 })}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Selling Price (Rs.)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        className="form-input"
-                                        placeholder="0.00"
-                                        required
-                                        value={currentProduct.unitPrice}
-                                        onChange={(e) => setCurrentProduct({ ...currentProduct, unitPrice: parseFloat(e.target.value) || 0 })}
-                                    />
-                                </div>
                             </div>
 
-                            <div className="form-grid form-grid-2">
+                            {marginPct !== null && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.6rem 0.9rem', marginTop: '-0.25rem', marginBottom: '0.5rem',
+                                    borderRadius: '10px', fontSize: '0.85rem', fontWeight: 600,
+                                    backgroundColor: marginPct >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+                                    color: marginPct >= 0 ? 'var(--secondary)' : 'var(--error)',
+                                    border: `1px solid ${marginPct >= 0 ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`
+                                }}>
+                                    Profit margin: {marginPct.toFixed(1)}%
+                                    {marginPct < 0 && ' — selling below cost'}
+                                </div>
+                            )}
+
+                            <div className="form-grid form-grid-3">
                                 <div className="form-group">
                                     <label className="form-label">Reorder Level</label>
                                     <input
@@ -392,31 +496,132 @@ export default function ProductsPage() {
                                         min="0"
                                         className="form-input"
                                         placeholder="10"
-                                        required
                                         value={currentProduct.reorderLevel === undefined ? '' : currentProduct.reorderLevel}
                                         onChange={(e) => setCurrentProduct({ ...currentProduct, reorderLevel: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                     />
                                 </div>
-                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={currentProduct.isTaxable !== false}
-                                            onChange={(e) => setCurrentProduct({ ...currentProduct, isTaxable: e.target.checked })}
-                                            style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)' }}
-                                        />
-                                        <span className="form-label" style={{ margin: 0 }}>VAT taxable (13%)</span>
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                                        <input
-                                            type="checkbox"
-                                            id="isActive"
-                                            checked={currentProduct.isActive !== false}
-                                            onChange={(e) => setCurrentProduct({ ...currentProduct, isActive: e.target.checked })}
-                                            style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)' }}
-                                        />
-                                        <span className="form-label" style={{ margin: 0 }}>Is Active</span>
-                                    </label>
+                                <div className="form-group">
+                                    <label className="form-label">Max Stock Level</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="100"
+                                        value={currentProduct.maxStockLevel === undefined ? '' : currentProduct.maxStockLevel}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, maxStockLevel: e.target.value === '' ? undefined : parseInt(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Warranty</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g. 12 Months"
+                                        value={currentProduct.warrantyPeriod}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, warrantyPeriod: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <SectionHeader title="Physical Attributes" hint="Weight & dimensions for shipping" />
+                            <div className="form-grid form-grid-4">
+                                <div className="form-group">
+                                    <label className="form-label">Weight (KG)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        value={currentProduct.weightKg === undefined ? '' : currentProduct.weightKg}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, weightKg: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Length (CM)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        value={currentProduct.lengthCm === undefined ? '' : currentProduct.lengthCm}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, lengthCm: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Width (CM)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        value={currentProduct.widthCm === undefined ? '' : currentProduct.widthCm}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, widthCm: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Height (CM)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        className="form-input"
+                                        placeholder="0.00"
+                                        value={currentProduct.heightCm === undefined ? '' : currentProduct.heightCm}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, heightCm: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                            </div>
+
+                            <SectionHeader title="Media & Flags" hint="Image URL and status toggles" />
+                            <div className="form-grid form-grid-2">
+                                <div className="form-group">
+                                    <label className="form-label">Product Image URL</label>
+                                    <input
+                                        type="url"
+                                        className="form-input"
+                                        placeholder="https://..."
+                                        value={currentProduct.imageUrl}
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, imageUrl: e.target.value })}
+                                    />
+                                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.4rem 0 0' }}>Paste a direct link to the product image.</p>
+                                </div>
+                                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <div style={{
+                                        width: 72, height: 72, borderRadius: 12, flexShrink: 0,
+                                        overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        backgroundColor: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)'
+                                    }}>
+                                        {currentProduct.imageUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={currentProduct.imageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>No image</span>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={currentProduct.isTaxable !== false}
+                                                onChange={(e) => setCurrentProduct({ ...currentProduct, isTaxable: e.target.checked })}
+                                                style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)' }}
+                                            />
+                                            <span className="form-label" style={{ margin: 0 }}>VAT taxable (13%)</span>
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                id="isActive"
+                                                checked={currentProduct.isActive !== false}
+                                                onChange={(e) => setCurrentProduct({ ...currentProduct, isActive: e.target.checked })}
+                                                style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)' }}
+                                            />
+                                            <span className="form-label" style={{ margin: 0 }}>Is Active</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             

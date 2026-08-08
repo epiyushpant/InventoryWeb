@@ -468,7 +468,7 @@ function AuthLayoutInner({
 
                     {/* User profile & exit area */}
                     <div className="topbar-user-area">
-                        <div className="topbar-profile">
+                        <Link href="/profile" className="topbar-profile" title="View profile" style={{ textDecoration: 'none', color: 'inherit' }}>
                             <div className="topbar-avatar">
                                 {userName.charAt(0).toUpperCase()}
                             </div>
@@ -476,7 +476,7 @@ function AuthLayoutInner({
                                 <p className="topbar-username">{userName}</p>
                                 <p className="topbar-role">{userRole}</p>
                             </div>
-                        </div>
+                        </Link>
 
                         {/* Exit icon logout button matching Mero Share visual style */}
                         <button 

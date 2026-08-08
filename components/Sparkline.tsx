@@ -10,6 +10,8 @@ type SparklineProps = {
     height?: number;
     /** Render vertical bars instead of an area line. */
     variant?: 'area' | 'bars';
+    /** Show the point markers on the area line. */
+    showDots?: boolean;
 };
 
 export default function Sparkline({
@@ -18,6 +20,7 @@ export default function Sparkline({
     color = 'var(--primary)',
     height = 110,
     variant = 'area',
+    showDots = true,
 }: SparklineProps) {
     const gradientId = useId().replace(/:/g, '');
 
@@ -81,19 +84,20 @@ export default function Sparkline({
                 strokeLinejoin="round"
                 points={points}
             />
-            {values.map((v, i) => (
-                <circle
-                    key={i}
-                    cx={i * step}
-                    cy={height - (v / max) * (height - 8) - 4}
-                    r="3.5"
-                    fill="#fff"
-                    stroke={color}
-                    strokeWidth="2"
-                >
-                    {labels?.[i] && <title>{`${labels[i]}: ${v}`}</title>}
-                </circle>
-            ))}
+            {showDots &&
+                values.map((v, i) => (
+                    <circle
+                        key={i}
+                        cx={i * step}
+                        cy={height - (v / max) * (height - 8) - 4}
+                        r="3.5"
+                        fill="#fff"
+                        stroke={color}
+                        strokeWidth="2"
+                    >
+                        {labels?.[i] && <title>{`${labels[i]}: ${v}`}</title>}
+                    </circle>
+                ))}
         </svg>
     );
 }

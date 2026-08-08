@@ -173,6 +173,10 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.form-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
 .form-row-inline {
   display: flex;
   align-items: center;
@@ -827,6 +831,357 @@
   100% {
     background-position: -200% 0;
   }
+}
+
+/* ---------- Stat card sparkline ---------- */
+.stat-card__spark {
+  margin-top: 0.6rem;
+  opacity: 0.9;
+}
+
+/* ---------- Segmented control ---------- */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+}
+
+.segmented__btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.segmented__btn.is-active {
+  background: var(--surface);
+  color: var(--primary, var(--tone-primary));
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Trend chart ---------- */
+.trend-chart__tick {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-chart__label {
+  fill: var(--text-muted);
+  font-size: 11px;
+}
+
+/* ---------- Donut chart ---------- */
+.donut-panel {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.donut {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.donut__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+}
+
+.donut__value {
+  font-family: var(--font-outfit);
+  font-size: 1.55rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.donut__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+  min-width: 150px;
+}
+
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.legend__dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legend__label {
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.legend__value {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+}
+
+/* ---------- Progress ring ---------- */
+.ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.ring__chart {
+  position: relative;
+}
+
+.ring__percent {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+}
+
+.ring__label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.ring__caption {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Activity feed ---------- */
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.feed__item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed rgba(15, 23, 42, 0.08);
+  --feed-tone: var(--tone-info);
+}
+
+.feed__item:last-child {
+  border-bottom: none;
+}
+
+.feed__item--primary { --feed-tone: var(--tone-primary); }
+.feed__item--success { --feed-tone: var(--tone-success); }
+.feed__item--warning { --feed-tone: var(--tone-warning); }
+.feed__item--danger { --feed-tone: var(--tone-danger); }
+.feed__item--info { --feed-tone: var(--tone-info); }
+
+.feed__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+  background: var(--feed-tone);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--feed-tone) 18%, transparent);
+}
+
+.feed__body {
+  min-width: 0;
+}
+
+.feed__title {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.35;
+}
+
+.feed__meta {
+  margin: 0.1rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Profile page ---------- */
+.form-span-2 {
+  grid-column: 1 / -1;
+}
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+}
+
+.profile-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-outfit);
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, var(--tone-primary), #818cf8);
+  flex-shrink: 0;
+}
+
+.profile-hero__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-hero__name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.profile-hero__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.profile-socials {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.profile-social {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.profile-social:hover {
+  color: var(--primary, var(--tone-primary));
+  border-color: var(--primary, var(--tone-primary));
+  transform: translateY(-2px);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.1rem 1.5rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item--full {
+  grid-column: 1 / -1;
+}
+
+.detail-item__label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.detail-item__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  word-break: break-word;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px dashed rgba(15, 23, 42, 0.08);
+  flex-wrap: wrap;
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-row__title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.setting-row__desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.panel--danger {
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+.panel--danger .panel__header {
+  border-bottom-color: rgba(220, 38, 38, 0.18);
+}
+
+.panel--danger .panel__title {
+  color: var(--tone-danger);
 }
 
 /* ---------- Rank / activity lists ---------- */

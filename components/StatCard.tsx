@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Sparkline from './Sparkline';
 
 export type StatTone = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
@@ -26,6 +27,9 @@ type StatCardProps = {
     footer?: React.ReactNode;
     href?: string;
     linkLabel?: string;
+    /** Optional mini trend rendered under the value. */
+    spark?: number[];
+    sparkVariant?: 'area' | 'bars';
 };
 
 export default function StatCard({
@@ -40,6 +44,8 @@ export default function StatCard({
     footer,
     href,
     linkLabel = 'View details',
+    spark,
+    sparkVariant = 'area',
 }: StatCardProps) {
     return (
         <div className="stat-card" style={{ ['--stat-accent' as string]: TONE_COLOR[tone] }}>
@@ -52,6 +58,18 @@ export default function StatCard({
                 {value}
                 {unit && <span className="stat-card__unit">{unit}</span>}
             </p>
+
+            {spark && spark.length > 1 && (
+                <div className="stat-card__spark">
+                    <Sparkline
+                        values={spark}
+                        color={TONE_COLOR[tone]}
+                        height={38}
+                        variant={sparkVariant}
+                        showDots={false}
+                    />
+                </div>
+            )}
 
             {(alert || hint) && (
                 <p className="stat-card__hint">

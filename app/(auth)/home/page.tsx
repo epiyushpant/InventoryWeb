@@ -10,7 +10,8 @@ import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import StatCard from '@/components/StatCard';
 import Panel from '@/components/Panel';
-import Sparkline from '@/components/Sparkline';
+import TrendChart from '@/components/TrendChart';
+import DonutChart from '@/components/DonutChart';
 
 const icons = {
     revenue: (
@@ -61,11 +62,19 @@ const quickActions = [
     { href: '/products', label: 'Add Product' },
 ];
 
+type ActivityItem = {
+    key: string;
+    title: React.ReactNode;
+    meta: string;
+    tone: 'primary' | 'success' | 'warning' | 'danger' | 'info';
+};
+
 export default function HomePage() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [reordering, setReordering] = useState(false);
+    const [chartVariant, setChartVariant] = useState<'area' | 'bars'>('area');
     const { isEnabled } = useCapabilities();
     const showExpiryKpi = isEnabled('feature.dashboardKpis') && isEnabled('feature.expiry');
     const showPaymentsKpi = isEnabled('feature.dashboardKpis') && isEnabled('feature.payments');
@@ -102,6 +111,8 @@ export default function HomePage() {
     };
 
     const history: { date: string; count: number }[] = stats?.salesHistory ?? [];
+    const historyValues = history.map((d) => d.count);
+    const historyLabels = history.map((d) => d.date);
 
     const trend = useMemo(() => {
         if (history.length < 6) return null;
@@ -114,6 +125,47 @@ export default function HomePage() {
 
     const topProducts: any[] = stats?.topProducts ?? [];
     const topMax = Math.max(...topProducts.map((p) => p.totalSold ?? 0), 1);
+
+    const totalProducts = stats?.totalProducts || 0;
+    const lowStock = stats?.lowStockCount || 0;
+    const outOfStock = stats?.outOfStockCount || 0;
+    const healthyStock = Math.max(0, totalProducts - lowStock - outOfStock);
+    const healthPercent = totalProducts > 0 ? (healthyStock / totalProducts) * 100 : 0;
+
+    const stockSegments = [
+        { label: 'Healthy', value: healthyStock, color: 'var(--tone-success)' },
+        { label: 'Low stock', value: lowStock, color: 'var(--tone-warning)' },
+        { label: 'Out of stock', value: outOfStock, color: 'var(--tone-danger)' },
+    ];
+
+    const activity = useMemo<ActivityItem[]>(() => {
+        const items: ActivityItem[] = [];
+        if (outOfStock > 0) {
+            items.push({
+                key: 'act-out',
+                title: <><strong>{outOfStock}</strong> product{outOfStock === 1 ? '' : 's'} out of stock</>,
+                meta: 'Replenish to avoid lost sales',
+                tone: 'danger',
+            });
+        }
+        if (lowStock > 0) {
+            items.push({
+                key: 'act-low',
+                title: <><strong>{lowStock}</strong> item{lowStock === 1 ? '' : 's'} at or below reorder level</>,
+                meta: 'Consider auto-reorder',
+                tone: 'warning',
+            });
+        }
+        (stats?.recentSales || []).forEach((item: any) => {
+            items.push({
+                key: `sale-${item.saleID}`,
+                title: <>Sale <strong>#{item.saleID}</strong> — {item.customerName}</>,
+                meta: `${formatAdBs(item.saleDate)} · ${item.status}`,
+                tone: item.status === 'Cancelled' ? 'danger' : item.status === 'Completed' ? 'success' : 'info',
+            });
+        });
+        return items.slice(0, 7);
+    }, [stats, lowStock, outOfStock]);
 
     if (loading && !stats) {
         return (
@@ -163,6 +215,7 @@ export default function HomePage() {
                     icon={icons.revenue}
                     tone="success"
                     accentValue
+                    spark={historyValues}
                     hint={`${stats?.totalSales || 0} sales transactions recorded.`}
                     footer={
                         trend && (
@@ -188,14 +241,14 @@ export default function HomePage() {
 
                 <StatCard
                     label="Inventory Health"
-                    value={stats?.totalProducts || 0}
+                    value={totalProducts}
                     unit="active SKUs"
                     icon={icons.box}
-                    tone={stats?.lowStockCount > 0 ? 'warning' : 'success'}
-                    alert={stats?.outOfStockCount > 0 ? `${stats.outOfStockCount} items out of stock` : undefined}
+                    tone={lowStock > 0 ? 'warning' : 'success'}
+                    alert={outOfStock > 0 ? `${outOfStock} items out of stock` : undefined}
                     hint={
-                        stats?.lowStockCount > 0
-                            ? `${stats.lowStockCount} items at or below reorder level.`
+                        lowStock > 0
+                            ? `${lowStock} items at or below reorder level.`
                             : 'Stock levels look healthy.'
                     }
                     href="/inventories"
@@ -223,6 +276,8 @@ export default function HomePage() {
                     icon={icons.cart}
                     tone="primary"
                     accentValue
+                    spark={historyValues}
+                    sparkVariant="bars"
                     hint={`Weekly volume: ${history.reduce((sum, d) => sum + d.count, 0)} sales in the last 7 days.`}
                 />
 
@@ -239,54 +294,63 @@ export default function HomePage() {
 
             <div className="panel-grid panel-grid--wide-left">
                 <Panel
-                    title="Sales Velocity"
+                    title="Sales Trend"
                     subtitle="Transactions per day over the last 7 days"
                     actions={
-                        trend && (
-                            <span className={`trend-chip trend-chip--${trend.dir}`}>
-                                {trend.dir === 'up' ? '▲' : trend.dir === 'down' ? '▼' : '■'} {trend.pct}%
-                            </span>
-                        )
+                        <div className="segmented" role="tablist" aria-label="Chart type">
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={chartVariant === 'area'}
+                                className={`segmented__btn${chartVariant === 'area' ? ' is-active' : ''}`}
+                                onClick={() => setChartVariant('area')}
+                            >
+                                Area
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                aria-selected={chartVariant === 'bars'}
+                                className={`segmented__btn${chartVariant === 'bars' ? ' is-active' : ''}`}
+                                onClick={() => setChartVariant('bars')}
+                            >
+                                Bars
+                            </button>
+                        </div>
                     }
                 >
-                    <Sparkline
-                        values={history.map((d) => d.count)}
-                        labels={history.map((d) => d.date)}
-                        height={140}
+                    <TrendChart
+                        values={historyValues}
+                        labels={historyLabels}
+                        variant={chartVariant}
+                        height={240}
+                        color="var(--tone-primary)"
                     />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
-                        {history.map((d) => (
-                            <span key={d.date} style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{d.date}</span>
-                        ))}
-                    </div>
                 </Panel>
 
-                <Panel title="Top Selling Items" subtitle="Highest quantity sold to date">
-                    {topProducts.length === 0 ? (
-                        <p className="text-muted-small">No sales data yet.</p>
-                    ) : (
-                        <div className="rank-list">
-                            {topProducts.map((p: any, i: number) => (
-                                <div key={`${p.sku}-${i}`} className="rank-row">
-                                    <span className="rank-index">{i + 1}</span>
-                                    <div className="rank-main">
-                                        <p className="rank-name">{p.name}</p>
-                                        <p className="rank-meta">{p.sku}</p>
-                                        <div className="rank-bar">
-                                            <span style={{ width: `${Math.round(((p.totalSold ?? 0) / topMax) * 100)}%` }} />
-                                        </div>
-                                    </div>
-                                    <div className="rank-value">{p.totalSold}</div>
-                                </div>
+                <Panel title="Stock Composition" subtitle="Distribution of SKUs by stock status">
+                    <div className="donut-panel">
+                        <DonutChart
+                            segments={stockSegments}
+                            centerValue={`${Math.round(healthPercent)}%`}
+                            centerLabel="healthy"
+                        />
+                        <ul className="legend">
+                            {stockSegments.map((s) => (
+                                <li key={s.label} className="legend__item">
+                                    <span className="legend__dot" style={{ background: s.color }} />
+                                    <span className="legend__label">{s.label}</span>
+                                    <span className="legend__value">{s.value}</span>
+                                </li>
                             ))}
-                        </div>
-                    )}
+                        </ul>
+                    </div>
                 </Panel>
             </div>
 
             <div className="panel-grid panel-grid--wide-left">
                 <Panel
-                    title="Recent Activity"
+                    title="Recent Orders"
                     subtitle="Latest sales across the shop"
                     flush
                     actions={<Link href="/sales" className="btn btn-secondary btn-small">View all sales</Link>}
@@ -324,6 +388,48 @@ export default function HomePage() {
                             </tbody>
                         </table>
                     </div>
+                </Panel>
+
+                <Panel title="Activity Feed" subtitle="Alerts and the latest movements">
+                    {activity.length === 0 ? (
+                        <p className="text-muted-small">Nothing to report yet.</p>
+                    ) : (
+                        <ul className="feed">
+                            {activity.map((item) => (
+                                <li key={item.key} className={`feed__item feed__item--${item.tone}`}>
+                                    <span className="feed__dot" />
+                                    <div className="feed__body">
+                                        <p className="feed__title">{item.title}</p>
+                                        <p className="feed__meta">{item.meta}</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Panel>
+            </div>
+
+            <div className="panel-grid panel-grid--wide-left">
+                <Panel title="Top Selling Items" subtitle="Highest quantity sold to date">
+                    {topProducts.length === 0 ? (
+                        <p className="text-muted-small">No sales data yet.</p>
+                    ) : (
+                        <div className="rank-list">
+                            {topProducts.map((p: any, i: number) => (
+                                <div key={`${p.sku}-${i}`} className="rank-row">
+                                    <span className="rank-index">{i + 1}</span>
+                                    <div className="rank-main">
+                                        <p className="rank-name">{p.name}</p>
+                                        <p className="rank-meta">{p.sku}</p>
+                                        <div className="rank-bar">
+                                            <span style={{ width: `${Math.round(((p.totalSold ?? 0) / topMax) * 100)}%` }} />
+                                        </div>
+                                    </div>
+                                    <div className="rank-value">{p.totalSold}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </Panel>
 
                 <div style={{ display: 'grid', gap: '1rem', alignContent: 'start' }}>

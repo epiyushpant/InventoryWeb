@@ -6,6 +6,13 @@ import LookupTable, { Column } from '@/components/LookupTable';
 import { useRouter } from 'next/navigation';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import WorkflowStrip from '@/components/WorkflowStrip';
+import LockedBanner from '@/components/LockedBanner';
+import StatusBadge from '@/components/StatusBadge';
+import MoneyCell from '@/components/MoneyCell';
+import { formatNpr } from '@/lib/format';
+import { formatAdBs } from '@/lib/nepali-date';
+import { isDocumentEditable, lockReason } from '@/lib/documentLock';
 
 interface SaleDetail {
     productID: number;
@@ -40,12 +47,13 @@ export default function SalesPage() {
     const [currentSale, setCurrentSale] = useState<Partial<Sale>>({
         customerID: 0,
         totalAmount: 0,
-        status: 'Pending',
+        status: 'Draft',
         saleDate: new Date().toISOString().split('T')[0],
         saleDetails: []
     });
     const [showModal, setShowModal] = useState(false);
     const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
+    const saleLocked = isEditing && !isDocumentEditable('Sale', currentSale.status);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
@@ -85,6 +93,7 @@ export default function SalesPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (saleLocked) return;
         setLoading(true);
         setError('');
         try {
@@ -99,13 +108,15 @@ export default function SalesPage() {
             setCurrentSale({
                 customerID: customers.length > 0 ? customers[0].customerID : 0,
                 totalAmount: 0,
-                status: 'Pending',
-                saleDate: new Date().toISOString().split('T')[0]
+                status: 'Draft',
+                saleDate: new Date().toISOString().split('T')[0],
+                saleDetails: []
             });
             setIsEditing(false);
             await loadSales();
         } catch (err: any) {
             handleApiError(err);
+            setError(err.message || 'Save failed');
         } finally {
             setLoading(false);
         }
@@ -154,6 +165,10 @@ export default function SalesPage() {
     };
 
     const handleDelete = async (sale: Sale) => {
+        if (!isDocumentEditable('Sale', sale.status)) {
+            alert(lockReason('Sale', sale.status));
+            return;
+        }
         if (!confirm('Are you sure you want to delete this sale record?')) return;
         try {
             await salesApi.delete(sale.saleID);
@@ -187,7 +202,7 @@ export default function SalesPage() {
                         {getCustomerName(sale.customerID)}
                     </p>
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        {sale.saleDate ? new Date(sale.saleDate).toLocaleDateString() : 'Date N/A'}
+                        {formatAdBs(sale.saleDate || null)}
                     </span>
                 </div>
             ),
@@ -195,32 +210,23 @@ export default function SalesPage() {
         {
             header: 'Status',
             render: (sale) => (
-                <span style={{ 
-                    padding: '0.3rem 0.6rem', 
-                    borderRadius: '12px', 
-                    fontSize: '0.8rem', 
-                    fontWeight: 700, 
-                    backgroundColor: sale.status === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    color: sale.status === 'Completed' ? 'var(--secondary)' : '#f59e0b'
-                }}>
-                    {sale.status || 'Pending'}
-                </span>
+                <StatusBadge status={sale.status || 'Pending'}>{sale.status || 'Pending'}</StatusBadge>
             ),
         },
         {
             header: 'Total Amount',
-            render: (sale) => (
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--secondary)' }}>
-                    Rs. {sale.totalAmount?.toFixed(2)}
-                </span>
-            ),
+            align: 'right',
+            numeric: true,
+            sortValue: (sale) => sale.totalAmount ?? 0,
+            render: (sale) => <MoneyCell amount={sale.totalAmount} strong />,
         },
         {
             header: 'Details',
+            align: 'center',
+            sortable: false,
             render: (sale) => (
                 <button
-                    className="btn btn-primary"
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                    className="btn btn-secondary btn-small"
                     onClick={() => router.push(`/sales-details?saleId=${sale.saleID}`)}
                 >
                     View Details
@@ -240,8 +246,9 @@ export default function SalesPage() {
                     setCurrentSale({
                         customerID: customers.length > 0 ? customers[0].customerID : 0,
                         totalAmount: 0,
-                        status: 'Pending',
-                        saleDate: new Date().toISOString().split('T')[0]
+                        status: 'Draft',
+                        saleDate: new Date().toISOString().split('T')[0],
+                        saleDetails: []
                     });
                     setShowModal(true);
                 }}
@@ -254,20 +261,37 @@ export default function SalesPage() {
                 emptyTitle="No Sales Found"
                 emptyText="Record a new transaction to see your data."
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onDelete={(sale) => {
+                    if (!isDocumentEditable('Sale', sale.status)) {
+                        alert(lockReason('Sale', sale.status));
+                        return;
+                    }
+                    void handleDelete(sale);
+                }}
             />
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="glass animate-fade modal-card">
+                        <WorkflowStrip
+                            steps={[
+                                { label: 'Sale', active: true },
+                                { label: 'Delivery', href: '/delivery-notes' },
+                                { label: 'Invoice', href: '/sales-invoices' },
+                            ]}
+                        />
+                        {saleLocked && <LockedBanner message={lockReason('Sale', currentSale.status)} />}
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>
                                 {isEditing ? `Edit Sale #SO-${currentSale.saleID}` : 'Record Transaction'}
                             </h2>
-                            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Log a new sale in the system.</p>
+                            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                                Header + lines in one voucher. Completing deducts available stock.
+                            </p>
                         </div>
 
                         <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
+                            <fieldset disabled={saleLocked} style={{ border: 'none', padding: 0, margin: 0 }}>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Customer</label>
@@ -275,6 +299,7 @@ export default function SalesPage() {
                                         className="form-input"
                                         required
                                         value={currentSale.customerID || 0}
+                                        disabled={saleLocked}
                                         onChange={(e) => setCurrentSale({ ...currentSale, customerID: parseInt(e.target.value) })}
                                         style={{ appearance: 'none', backgroundImage: 'linear-gradient(45deg, transparent 50%, var(--primary) 50%), linear-gradient(135deg, var(--primary) 50%, transparent 50%)', backgroundPosition: 'calc(100% - 20px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
                                     >
@@ -287,15 +312,19 @@ export default function SalesPage() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Date of Sale</label>
+                                    <label className="form-label">Date of Sale (AD)</label>
                                     <input
                                         type="date"
                                         className="form-input"
                                         required
                                         value={currentSale.saleDate}
+                                        disabled={saleLocked}
                                         onChange={(e) => setCurrentSale({ ...currentSale, saleDate: e.target.value })}
                                         style={{ colorScheme: 'dark' }}
                                     />
+                                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        {formatAdBs(currentSale.saleDate || null)}
+                                    </p>
                                 </div>
                             </div>
 
@@ -309,6 +338,7 @@ export default function SalesPage() {
                                         value={barcodeInput}
                                         onChange={(e) => setBarcodeInput(e.target.value)}
                                         onKeyDown={handleBarcodeScan}
+                                        disabled={saleLocked}
                                         autoFocus
                                         style={{ border: '2px solid var(--primary)', background: 'rgba(99, 102, 241, 0.05)' }}
                                     />
@@ -320,6 +350,7 @@ export default function SalesPage() {
                                         type="button" 
                                         className="btn btn-primary" 
                                         style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                                        disabled={saleLocked}
                                         onClick={() => {
                                             const firstProduct = products[0];
                                             const newItem = { productID: firstProduct?.productID || 0, orderedQuantity: 1, unitPrice: firstProduct?.unitPrice || 0, discount: 0 };
@@ -419,26 +450,30 @@ export default function SalesPage() {
                                         className="form-input"
                                         required
                                         value={currentSale.status}
+                                        disabled={saleLocked}
                                         onChange={(e) => setCurrentSale({ ...currentSale, status: e.target.value })}
                                     >
+                                        <option value="Draft">Draft</option>
                                         <option value="Pending">Pending</option>
-                                        <option value="Completed">Completed</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="Completed">Completed (deduct stock)</option>
                                         <option value="Cancelled">Cancelled</option>
                                     </select>
                                 </div>
                                 <div className="form-group" style={{ display: 'grid', gap: '0.35rem' }}>
                                     <label className="form-label">Estimated Total</label>
                                     <div className="form-input" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', fontWeight: 700, color: 'var(--primary)' }}>
-                                        Rs. {(currentSale.saleDetails || []).reduce((sum, item) => sum + (item.orderedQuantity * item.unitPrice) - (item.discount || 0), 0).toFixed(2)}
+                                        {formatNpr((currentSale.saleDetails || []).reduce((sum, item) => sum + (item.orderedQuantity * item.unitPrice) - (item.discount || 0), 0))}
                                     </div>
                                 </div>
                             </div>
+                            </fieldset>
 
                             <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-success btn-block" disabled={loading}>
-                                    {loading ? 'Processing...' : (isEditing ? 'Update Records' : 'Save Transaction')}
+                                <button type="submit" className="btn btn-success btn-block" disabled={loading || saleLocked}>
+                                    {saleLocked ? 'View only' : loading ? 'Processing...' : (isEditing ? 'Update Records' : 'Save Transaction')}
                                 </button>
                             </div>
                         </form>

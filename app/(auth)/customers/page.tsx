@@ -205,7 +205,7 @@ export default function CustomersPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="glass animate-fade modal-card">
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Customer' : 'Add Customer'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Manage customer profile details.</p>
@@ -260,6 +260,9 @@ export default function CustomersPage() {
                                         type="text"
                                         className="form-input"
                                         placeholder="9-digit PAN"
+                                        maxLength={9}
+                                        pattern="[0-9]{9}"
+                                        title="Nepal PAN must be exactly 9 digits"
                                         value={currentCustomer.pan}
                                         onChange={(e) => setCurrentCustomer({ ...currentCustomer, pan: e.target.value })}
                                     />

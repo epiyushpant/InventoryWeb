@@ -5,6 +5,9 @@ import { productsApi, locationsApi, grnsApi, purchaseOrdersApi } from '@/lib/api
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import { useFieldCapability } from '@/hooks/useFieldCapability';
+import { formatAdBs } from '@/lib/nepali-date';
+import { formatNpr } from '@/lib/format';
 
 interface GRN {
     grnid: number;
@@ -14,6 +17,8 @@ interface GRN {
     damagedQuantity: number;
     locationID: number;
     receivedDate: string;
+    otherExpenses?: number;
+    expiryDate?: string | null;
 }
 
 interface Product {
@@ -26,6 +31,7 @@ interface Location {
     warehouseName: string;
 }
 
+
 export default function GRNsPage() {
     const [grns, setGrns] = useState<GRN[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
@@ -35,14 +41,22 @@ export default function GRNsPage() {
     const [error, setError] = useState('');
     const [showModal, setShowModal] = useState(false);
     const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
-    const [currentGRN, setCurrentGRN] = useState<Partial<GRN>>({
+    const { showField } = useFieldCapability();
+    const showExpiry = showField('field.product.expiryDate');
+    const showLanded = showField('field.grn.otherExpenses');
+
+    const emptyForm = (): Partial<GRN> => ({
         purchaseOrderID: 0,
         productID: 0,
         receivedQuantity: 0,
         damagedQuantity: 0,
         locationID: 0,
-        receivedDate: new Date().toISOString().split('T')[0]
+        receivedDate: new Date().toISOString().split('T')[0],
+        otherExpenses: 0,
+        expiryDate: '',
     });
+
+    const [currentGRN, setCurrentGRN] = useState<Partial<GRN>>(emptyForm());
 
     useEffect(() => {
         loadData();
@@ -73,17 +87,17 @@ export default function GRNsPage() {
         setLoading(true);
         setError('');
         try {
-            await grnsApi.create(currentGRN);
+            const payload = {
+                ...currentGRN,
+                otherExpenses: showLanded ? (currentGRN.otherExpenses || 0) : 0,
+                expiryDate: showExpiry && currentGRN.expiryDate
+                    ? new Date(currentGRN.expiryDate).toISOString()
+                    : null,
+            };
+            await grnsApi.create(payload);
             alert('GRN saved successfully. Inventory updated.');
             setShowModal(false);
-            setCurrentGRN({
-                purchaseOrderID: 0,
-                productID: 0,
-                receivedQuantity: 0,
-                damagedQuantity: 0,
-                locationID: 0,
-                receivedDate: new Date().toISOString().split('T')[0]
-            });
+            setCurrentGRN(emptyForm());
             await loadData();
         } catch (err: any) {
             handleApiError(err);
@@ -99,7 +113,9 @@ export default function GRNsPage() {
         { header: 'Received', render: (g) => g.receivedQuantity },
         { header: 'Damaged', render: (g) => g.damagedQuantity },
         { header: 'Warehouse', render: (g) => locations.find(l => l.locationID === g.locationID)?.warehouseName || 'Unknown' },
-        { header: 'Date', render: (g) => new Date(g.receivedDate).toLocaleDateString() },
+        { header: 'Date', render: (g) => formatAdBs(g.receivedDate) },
+        ...(showLanded ? [{ header: 'Other costs', render: (g: GRN) => formatNpr(g.otherExpenses) }] : []),
+        ...(showExpiry ? [{ header: 'Expiry', render: (g: GRN) => g.expiryDate ? formatAdBs(g.expiryDate) : '—' }] : []),
     ];
 
     return (
@@ -118,7 +134,7 @@ export default function GRNsPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card">
+                    <div className="glass animate-fade modal-card">
                         <h2 className="auth-title">Receive Shipment</h2>
                         <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">
@@ -181,6 +197,33 @@ export default function GRNsPage() {
                                     {locations.map(l => <option key={l.locationID} value={l.locationID}>{l.warehouseName}</option>)}
                                 </select>
                             </div>
+                            {showLanded && (
+                                <div className="form-group">
+                                    <label className="form-label">Other expenses (landed cost)</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        min="0"
+                                        step="0.01"
+                                        value={currentGRN.otherExpenses ?? 0}
+                                        onChange={e => setCurrentGRN({ ...currentGRN, otherExpenses: parseFloat(e.target.value) || 0 })}
+                                    />
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                                        Transport / duty allocated into product cost price.
+                                    </p>
+                                </div>
+                            )}
+                            {showExpiry && (
+                                <div className="form-group">
+                                    <label className="form-label">Expiry date</label>
+                                    <input
+                                        type="date"
+                                        className="form-input"
+                                        value={currentGRN.expiryDate || ''}
+                                        onChange={e => setCurrentGRN({ ...currentGRN, expiryDate: e.target.value })}
+                                    />
+                                </div>
+                            )}
                             <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>

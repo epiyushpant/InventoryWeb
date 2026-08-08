@@ -441,6 +441,21 @@ export const grnsApi = {
   },
 };
 
+export const unitConversionsApi = {
+  getAll: async () => {
+    return apiFetch(`${API_BASE_URL}/UnitConversions`, { headers: getAuthHeaders() }, 'Failed to fetch unit conversions');
+  },
+  create: async (payload: any) => {
+    return apiFetch(`${API_BASE_URL}/UnitConversions`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload) }, 'Failed to create unit conversion');
+  },
+  update: async (id: number, payload: any) => {
+    return apiFetch(`${API_BASE_URL}/UnitConversions/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(payload) }, 'Failed to update unit conversion');
+  },
+  delete: async (id: number) => {
+    return apiFetch(`${API_BASE_URL}/UnitConversions/${id}`, { method: 'DELETE', headers: getAuthHeaders() }, 'Failed to delete unit conversion');
+  },
+};
+
 export const dashboardApi = {
   getStats: async () => {
     return apiFetch(`${API_BASE_URL}/Dashboard/stats`, { headers: getAuthHeaders() }, 'Failed to fetch dashboard stats');
@@ -451,7 +466,7 @@ export const dashboardApi = {
 };
 
 export const reportsApi = {
-  getReport: async (reportId: 'stock-summary' | 'low-stock' | 'stock-ledger' | 'purchase-history' | 'sales-history' | 'vat-sales-register' | 'vat-purchase-register' | 'fiscal-year-stock') => {
+  getReport: async (reportId: 'stock-summary' | 'low-stock' | 'stock-ledger' | 'purchase-history' | 'sales-history' | 'vat-sales-register' | 'vat-purchase-register' | 'fiscal-year-stock' | 'expiry-soon') => {
     return apiFetch(`${API_BASE_URL}/Reports/${reportId}`, { headers: getAuthHeaders() }, 'Failed to fetch report');
   },
 };
@@ -464,7 +479,77 @@ export const usersApi = {
     return apiFetch(`${API_BASE_URL}/Users/${id}`, { method: 'DELETE', headers: getAuthHeaders() }, 'Failed to delete user');
   },
   updateRoles: async (id: string, roles: string[]) => {
-    return apiFetch(`${API_BASE_URL}/Users/${id}/roles`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(roles) }, 'Failed to update user roles');
+    return apiFetch(`${API_BASE_URL}/Users/${id}/roles`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(roles),
+    }, 'Failed to update user roles');
+  },
+  create: async (payload: { username: string; email: string; password: string; fullName?: string; roles?: string[] }) => {
+    return apiFetch(`${API_BASE_URL}/Users`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    }, 'Failed to create user');
+  },
+};
+
+export const tenantsApi = {
+  getCapabilities: async () => {
+    return apiFetch(`${API_BASE_URL}/tenants/current/capabilities`, { headers: getAuthHeaders() }, 'Failed to load capabilities');
+  },
+  getCatalog: async () => {
+    return apiFetch(`${API_BASE_URL}/tenants/catalog`, { headers: getAuthHeaders() }, 'Failed to load capability catalog');
+  },
+  applyPreset: async (preset: string) => {
+    return apiFetch(`${API_BASE_URL}/tenants/current/apply-preset`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ preset }),
+    }, 'Failed to apply preset');
+  },
+  putCapabilities: async (items: { key: string; enabled: boolean }[]) => {
+    return apiFetch(`${API_BASE_URL}/tenants/current/capabilities`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(items),
+    }, 'Failed to save capabilities');
+  },
+  provision: async (payload: {
+    name: string;
+    preset?: string;
+    adminUsername: string;
+    adminPassword: string;
+    adminEmail?: string;
+    adminFullName?: string;
+  }) => {
+    return apiFetch(`${API_BASE_URL}/tenants/provision`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    }, 'Failed to provision shop');
+  },
+};
+
+export const rolesApi = {
+  getRoles: async () => {
+    return apiFetch(`${API_BASE_URL}/roles`, { headers: getAuthHeaders() }, 'Failed to load roles');
+  },
+  getPermissions: async (role: string) => {
+    return apiFetch(`${API_BASE_URL}/roles/${encodeURIComponent(role)}/permissions`, { headers: getAuthHeaders() }, 'Failed to load role permissions');
+  },
+  putPermissions: async (role: string, items: { key: string; allowed: boolean }[]) => {
+    return apiFetch(`${API_BASE_URL}/roles/${encodeURIComponent(role)}/permissions`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(items),
+    }, 'Failed to save role permissions');
+  },
+  reset: async (role: string) => {
+    return apiFetch(`${API_BASE_URL}/roles/${encodeURIComponent(role)}/reset`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    }, 'Failed to reset role');
   },
 };
 

@@ -5,6 +5,8 @@ import { inventoriesApi, productsApi, locationsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import { useFieldCapability } from '@/hooks/useFieldCapability';
+import { formatAdBs } from '@/lib/nepali-date';
 
 interface Inventory {
     inventoryID: number;
@@ -14,6 +16,7 @@ interface Inventory {
     availableQuantity: number;
     locationID: number;
     lastUpdated: string;
+    expiryDate?: string | null;
 }
 
 interface Product {
@@ -46,6 +49,8 @@ export default function InventoriesPage() {
     });
     const [showModal, setShowModal] = useState(false);
     const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
+    const { showField } = useFieldCapability();
+    const showExpiry = showField('field.product.expiryDate');
 
     useEffect(() => {
         loadInitialData();
@@ -184,11 +189,22 @@ export default function InventoriesPage() {
                 </div>
             ),
         },
+        ...(showExpiry
+            ? [{
+                header: 'Expiry',
+                render: (item: Inventory) => {
+                    if (!item.expiryDate) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+                    const days = Math.ceil((new Date(item.expiryDate).getTime() - Date.now()) / 86400000);
+                    const color = days < 0 ? 'var(--error)' : days <= 30 ? '#f59e0b' : 'var(--text-main)';
+                    return <span style={{ color, fontWeight: 600 }}>{formatAdBs(item.expiryDate)}</span>;
+                },
+            } as Column<Inventory>]
+            : []),
         {
             header: 'Last Updated',
             render: (item) => (
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {item.lastUpdated ? new Date(item.lastUpdated).toLocaleString() : 'Never'}
+                    {item.lastUpdated ? formatAdBs(item.lastUpdated) : 'Never'}
                 </span>
             ),
         },
@@ -225,7 +241,7 @@ export default function InventoriesPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="glass animate-fade modal-card">
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Inventory' : 'New Inventory Record'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Update stock levels and location for products.</p>

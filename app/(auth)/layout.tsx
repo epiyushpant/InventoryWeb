@@ -4,40 +4,54 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { getAuthToken, getUserRole, getUserFullName, logout } from '@/lib/api';
+import {
+    CapabilityProvider,
+    useCapabilities,
+    NAV_CAPABILITY,
+    ROUTE_CAPABILITY,
+    ADMIN_ONLY_ROUTES,
+} from '@/components/CapabilityProvider';
 
-const topLevelLinks = [
-    { name: 'Dashboard', href: '/home' },
-    { name: 'Reports',   href: '/reports' },
-    { name: 'Users',     href: '/users',   roles: ['Admin'] },
-    { name: 'Admin',     href: '/admin',   roles: ['Admin'] }
+type NavLink = { name: string; href: string };
+
+// Who may see what now comes from Roles & permissions, not from arrays here.
+const adminControlLinks: NavLink[] = [
+    { name: 'Users', href: '/users' },
+    { name: 'Roles', href: '/roles' },
+    { name: 'Admin', href: '/admin' }
 ];
 
-const masterControlLinks = [
+const masterControlLinks: NavLink[] = [
     { name: 'Categories', href: '/categories' },
     { name: 'Warehouses', href: '/locations' },
     { name: 'Suppliers', href: '/suppliers' },
     { name: 'Customers', href: '/customers' },
-    { name: 'Products', href: '/products' }
+    { name: 'Products', href: '/products' },
+    { name: 'Unit Conversions', href: '/unit-conversions' }
 ];
 
-const inventoryControlLinks = [
+const inventoryControlLinks: NavLink[] = [
     { name: 'Inventory List', href: '/inventories' },
     { name: 'Purchase Requisitions', href: '/purchase-requisitions' },
     { name: 'Purchase Orders', href: '/purchase-orders' },
     { name: 'Goods Received (GRN)', href: '/grns' }
 ];
 
-const salesControlLinks = [
+const salesControlLinks: NavLink[] = [
     { name: 'Sales Orders', href: '/sales' },
     { name: 'Delivery Notes', href: '/delivery-notes' },
     { name: 'Sales Invoices', href: '/sales-invoices' }
 ];
 
-const stockControlLinks = [
+const stockControlLinks: NavLink[] = [
     { name: 'Stock Adjustments', href: '/stock-adjustments' },
     { name: 'Stock Transfers',   href: '/stock-transfers' },
     { name: 'Stock Movements',   href: '/stock-movements' }
 ];
+
+function isAdminOnly(pathname: string) {
+    return ADMIN_ONLY_ROUTES.some(prefix => pathname === prefix || pathname.startsWith(prefix + '/'));
+}
 
 function getIcon(name: string) {
     switch(name) {
@@ -198,6 +212,13 @@ function getIcon(name: string) {
                     <circle cx="9" cy="7" r="4" />
                 </svg>
             );
+        case 'Roles':
+            return (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <polyline points="9 12 11 14 15 10" />
+                </svg>
+            );
         case 'Admin':
             return (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -221,12 +242,42 @@ export default function AuthLayout({
 }: {
     children: React.ReactNode;
 }) {
+    return (
+        <CapabilityProvider>
+            <AuthLayoutInner>{children}</AuthLayoutInner>
+        </CapabilityProvider>
+    );
+}
+
+function AuthLayoutInner({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userRole, setUserRole] = useState('User');
     const [userName, setUserName] = useState('User');
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const { canUse, loading: capsLoading, preset, tenantName } = useCapabilities();
     const router = useRouter();
     const pathname = usePathname();
+
+    /** A link shows when the shop has the page on and the caller's role is granted it. */
+    const showLink = (link: NavLink) => {
+        if (isAdminOnly(link.href)) return userRole === 'Admin';
+        const cap = NAV_CAPABILITY[link.href];
+        return !cap || canUse(cap);
+    };
+
+    const isRouteAllowed = (path: string, role: string) => {
+        if (path === '/home') return true;
+        if (isAdminOnly(path)) return role === 'Admin';
+        if (capsLoading) return true;
+        const match = Object.keys(ROUTE_CAPABILITY).find(
+            (href) => path === href || path.startsWith(href + '/')
+        );
+        return !match || canUse(ROUTE_CAPABILITY[match]);
+    };
 
     useEffect(() => {
         const token = getAuthToken();
@@ -234,15 +285,18 @@ export default function AuthLayout({
             router.push('/login');
         } else {
             setIsAuthenticated(true);
-            setUserRole(getUserRole());
+            const role = getUserRole();
+            setUserRole(role);
             setUserName(getUserFullName());
+            if (!isRouteAllowed(pathname, role)) {
+                router.replace('/home');
+            }
         }
-    }, [router]);
+    }, [router, pathname, capsLoading, canUse]);
 
     // Handle route-specific toggle behavior on mobile
     useEffect(() => {
-        // Automatically close sidebar on mobile screen size after page change
-        if (window.innerWidth <= 1024) {
+        if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
             setSidebarOpen(false);
         }
     }, [pathname]);
@@ -253,6 +307,13 @@ export default function AuthLayout({
     };
 
     if (!isAuthenticated) return null;
+
+    const visibleMasters = masterControlLinks.filter(showLink);
+    const visibleInventory = inventoryControlLinks.filter(showLink);
+    const visibleSales = salesControlLinks.filter(showLink);
+    const visibleStock = stockControlLinks.filter(showLink);
+    const visibleAdmin = adminControlLinks.filter(showLink);
+    const showReports = showLink({ name: 'Reports', href: '/reports' });
 
     return (
         <div className="app-container">
@@ -285,84 +346,99 @@ export default function AuthLayout({
                         {getIcon('Dashboard')}
                         <span>Dashboard</span>
                     </Link>
-                    <Link href="/reports" className={`sidebar-link ${pathname === '/reports' ? 'active' : ''}`}>
-                        {getIcon('Reports')}
-                        <span>Reports</span>
-                    </Link>
-
-                    {/* Master Control Section */}
-                    <div className="sidebar-group-title">Master Control</div>
-                    {masterControlLinks.map(link => (
-                        <Link 
-                            key={link.href} 
-                            href={link.href} 
-                            className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
-                        >
-                            {getIcon(link.name)}
-                            <span>{link.name}</span>
+                    {showReports && (
+                        <Link href="/reports" className={`sidebar-link ${pathname === '/reports' ? 'active' : ''}`}>
+                            {getIcon('Reports')}
+                            <span>Reports</span>
                         </Link>
-                    ))}
+                    )}
 
-                    {/* Inventory Control Section */}
-                    <div className="sidebar-group-title">Inventory Control</div>
-                    {inventoryControlLinks.map(link => (
-                        <Link 
-                            key={link.href} 
-                            href={link.href} 
-                            className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
-                        >
-                            {getIcon(link.name)}
-                            <span>{link.name}</span>
-                        </Link>
-                    ))}
+                    {visibleMasters.length > 0 && (
+                        <>
+                            <div className="sidebar-group-title">Master Control</div>
+                            {visibleMasters.map(link => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
+                                >
+                                    {getIcon(link.name)}
+                                    <span>{link.name}</span>
+                                </Link>
+                            ))}
+                        </>
+                    )}
 
-                    {/* Sales Control Section */}
-                    <div className="sidebar-group-title">Sales Control</div>
-                    {salesControlLinks.map(link => (
-                        <Link 
-                            key={link.href} 
-                            href={link.href} 
-                            className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
-                        >
-                            {getIcon(link.name)}
-                            <span>{link.name}</span>
-                        </Link>
-                    ))}
+                    {visibleInventory.length > 0 && (
+                        <>
+                            <div className="sidebar-group-title">Inventory Control</div>
+                            {visibleInventory.map(link => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
+                                >
+                                    {getIcon(link.name)}
+                                    <span>{link.name}</span>
+                                </Link>
+                            ))}
+                        </>
+                    )}
 
-                    {/* Stock Control Section */}
-                    <div className="sidebar-group-title">Stock Control</div>
-                    {stockControlLinks.map(link => (
-                        <Link 
-                            key={link.href} 
-                            href={link.href} 
-                            className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
-                        >
-                            {getIcon(link.name)}
-                            <span>{link.name}</span>
-                        </Link>
-                    ))}
+                    {visibleSales.length > 0 && (
+                        <>
+                            <div className="sidebar-group-title">Sales Control</div>
+                            {visibleSales.map(link => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
+                                >
+                                    {getIcon(link.name)}
+                                    <span>{link.name}</span>
+                                </Link>
+                            ))}
+                        </>
+                    )}
 
-                    {/* Admin Section */}
-                    {userRole === 'Admin' && (
+                    {visibleStock.length > 0 && (
+                        <>
+                            <div className="sidebar-group-title">Stock Control</div>
+                            {visibleStock.map(link => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
+                                >
+                                    {getIcon(link.name)}
+                                    <span>{link.name}</span>
+                                </Link>
+                            ))}
+                        </>
+                    )}
+
+                    {visibleAdmin.length > 0 && (
                         <>
                             <div className="sidebar-group-title">Admin Controls</div>
-                            {topLevelLinks
-                                .filter(link => link.href !== '/home' && link.href !== '/reports')
-                                .filter(link => !link.roles || link.roles.includes(userRole))
-                                .map(link => (
-                                    <Link 
-                                        key={link.href} 
-                                        href={link.href} 
-                                        className={`sidebar-link ${pathname === link.href ? 'active' : ''}`}
-                                    >
-                                        {getIcon(link.name)}
-                                        <span>{link.name}</span>
-                                    </Link>
-                                ))
-                            }
+                            {visibleAdmin.map(link => (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    className={`sidebar-link ${pathname.startsWith(link.href) ? 'active' : ''}`}
+                                >
+                                    {getIcon(link.name)}
+                                    <span>{link.name}</span>
+                                </Link>
+                            ))}
                         </>
                     )}
                 </div>
+                {(tenantName || preset) && (
+                    <div style={{ padding: '0.75rem 1rem 1rem', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: 2 }}>{tenantName || 'Shop'}</div>
+                        <div>Preset: {preset || 'Full'}</div>
+                    </div>
+                )}
             </aside>
 
             {/* Main Application Area */}

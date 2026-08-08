@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { usersApi } from '../../../lib/api';
+import PageHeader from '@/components/PageHeader';
+import StatusBadge from '@/components/StatusBadge';
 
 interface User {
     id: string;
@@ -22,6 +24,16 @@ export default function UsersPage() {
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const [updatingRoles, setUpdatingRoles] = useState(false);
+
+    const [showCreate, setShowCreate] = useState(false);
+    const [creating, setCreating] = useState(false);
+    const [createForm, setCreateForm] = useState({
+        username: '',
+        email: '',
+        password: '',
+        fullName: '',
+        roles: ['User'] as string[],
+    });
 
     useEffect(() => {
         fetchUsers();
@@ -78,26 +90,67 @@ export default function UsersPage() {
             closeRoleModal();
         } catch (err) {
             console.error(err);
-            alert('Failed to update roles: ' + err);
+            const message = err instanceof Error ? err.message : String(err);
+            alert('Failed to update roles: ' + message);
         } finally {
             setUpdatingRoles(false);
         }
     };
 
+    const toggleCreateRole = (role: string) => {
+        setCreateForm((prev) => ({
+            ...prev,
+            roles: prev.roles.includes(role)
+                ? prev.roles.filter((r) => r !== role)
+                : [...prev.roles, role],
+        }));
+    };
+
+    const createUser = async () => {
+        if (!createForm.username.trim() || !createForm.password.trim()) {
+            alert('Username and password are required.');
+            return;
+        }
+        setCreating(true);
+        try {
+            const created = await usersApi.create({
+                username: createForm.username.trim(),
+                email: createForm.email.trim() || `${createForm.username.trim()}@local`,
+                password: createForm.password,
+                fullName: createForm.fullName.trim() || undefined,
+                roles: createForm.roles.length ? createForm.roles : ['User'],
+            });
+            setUsers((prev) => [...prev, created]);
+            setShowCreate(false);
+            setCreateForm({ username: '', email: '', password: '', fullName: '', roles: ['User'] });
+        } catch (err) {
+            alert('Failed to create user: ' + (err instanceof Error ? err.message : String(err)));
+        } finally {
+            setCreating(false);
+        }
+    };
+
     return (
         <div className="animate-fade" style={{ paddingTop: '1rem' }}>
-            <header style={{ marginBottom: '3.5rem', padding: '0 1rem' }}>
-                <h1 className="auth-title" style={{ fontSize: '3.5rem', margin: 0 }}>User Management</h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem', marginTop: '0.5rem' }}>
-                    Oversee system access and manage user credentials.
-                </p>
-            </header>
+            <PageHeader
+                title="User Management"
+                subtitle="Oversee system access and manage user credentials."
+                actions={
+                    <button
+                        type="button"
+                        className="btn btn-primary btn-wide"
+                        onClick={() => setShowCreate(true)}
+                    >
+                        + Create user
+                    </button>
+                }
+            />
 
-            <section className="glass" style={{ padding: '3rem', borderRadius: '32px', margin: '0 1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+            <section className="glass table-card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
                     <div>
-                        <h2 style={{ fontSize: '2rem', margin: 0 }}>Registered Operators</h2>
-                        <p style={{ color: 'var(--text-muted)', marginTop: '0.4rem' }}>View and manage active personnel in the system.</p>
+                        <h2 style={{ fontSize: '1.35rem', margin: 0 }}>Registered operators</h2>
+                        <p className="text-muted-small" style={{ marginTop: '0.35rem' }}>View and manage active personnel in the system.</p>
                     </div>
                 </div>
 
@@ -145,14 +198,7 @@ export default function UsersPage() {
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                             {user.roles.length > 0 ? user.roles.map(role => (
-                                                <span key={role} style={{
-                                                    fontSize: '0.75rem',
-                                                    padding: '0.2rem 0.6rem',
-                                                    borderRadius: '100px',
-                                                    background: 'var(--primary)',
-                                                    color: 'white',
-                                                    fontWeight: 600
-                                                }}>{role}</span>
+                                                <StatusBadge key={role} tone="info">{role}</StatusBadge>
                                             )) : (
                                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No Roles</span>
                                             )}
@@ -193,6 +239,79 @@ export default function UsersPage() {
                     </div>
                 )}
             </section>
+
+            {showCreate && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999
+                }}>
+                    <div className="glass" style={{
+                        padding: '2.5rem',
+                        borderRadius: '28px',
+                        width: '100%',
+                        maxWidth: '520px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        maxHeight: '90vh',
+                        overflow: 'auto'
+                    }}>
+                        <h3 style={{ fontSize: '1.6rem', margin: '0 0 0.5rem 0' }}>Create user</h3>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Admin assigns username, password, and roles.</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.5rem' }}>
+                            {[
+                                { key: 'username', label: 'Username *', type: 'text' },
+                                { key: 'fullName', label: 'Full name', type: 'text' },
+                                { key: 'email', label: 'Email', type: 'email' },
+                                { key: 'password', label: 'Password *', type: 'password' },
+                            ].map((f) => (
+                                <label key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>{f.label}</span>
+                                    <input
+                                        type={f.type}
+                                        value={(createForm as any)[f.key]}
+                                        onChange={(e) => setCreateForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                                        className="form-input"
+                                        style={{ padding: '0.7rem 0.9rem', borderRadius: '10px' }}
+                                    />
+                                </label>
+                            ))}
+                            <div>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Roles</span>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                    {AVAILABLE_ROLES.map((role) => (
+                                        <label key={role} style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                            padding: '0.45rem 0.75rem', borderRadius: '999px',
+                                            background: createForm.roles.includes(role) ? 'var(--primary)' : 'rgba(255,255,255,0.04)',
+                                            color: createForm.roles.includes(role) ? '#fff' : 'var(--text-main)',
+                                            cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600
+                                        }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={createForm.roles.includes(role)}
+                                                onChange={() => toggleCreateRole(role)}
+                                                style={{ display: 'none' }}
+                                            />
+                                            {role}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button type="button" onClick={() => setShowCreate(false)} className="btn btn-secondary" style={{ padding: '0.8rem 1.5rem' }}>Cancel</button>
+                            <button type="button" onClick={() => void createUser()} disabled={creating} className="btn btn-primary" style={{ padding: '0.8rem 1.5rem' }}>
+                                {creating ? 'Creating…' : 'Create'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {editingUser && (
                 <div style={{

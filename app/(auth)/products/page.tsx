@@ -5,6 +5,8 @@ import { productsApi, categoriesApi, suppliersApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import StatusBadge from '@/components/StatusBadge';
+import MoneyCell from '@/components/MoneyCell';
 
 interface Product {
     productID: number;
@@ -17,6 +19,7 @@ interface Product {
     costPrice: number;
     unitPrice: number; // Selling Price
     reorderLevel?: number;
+    isTaxable?: boolean;
     isActive: boolean;
 }
 
@@ -49,6 +52,7 @@ export default function ProductsPage() {
         costPrice: 0,
         unitPrice: 0,
         reorderLevel: 0,
+        isTaxable: true,
         isActive: true
     });
     const [showModal, setShowModal] = useState(false);
@@ -113,6 +117,7 @@ export default function ProductsPage() {
                 costPrice: 0,
                 unitPrice: 0,
                 reorderLevel: 0,
+                isTaxable: true,
                 isActive: true
             });
             setIsEditing(false);
@@ -192,11 +197,11 @@ export default function ProductsPage() {
             header: 'Pricing',
             render: (p) => (
                 <div>
-                    <p style={{ fontWeight: 600, color: 'var(--secondary)', margin: 0 }}>
-                        Sell: Rs. {p.unitPrice?.toFixed(2)}
+                    <p className="cell-primary" style={{ color: 'var(--secondary)' }}>
+                        Sell: <MoneyCell amount={p.unitPrice} />
                     </p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                        Cost: Rs. {p.costPrice?.toFixed(2)}
+                    <p className="cell-secondary">
+                        Cost: <MoneyCell amount={p.costPrice} muted />
                     </p>
                 </div>
             ),
@@ -214,17 +219,9 @@ export default function ProductsPage() {
         {
             header: 'Status',
             render: (p) => (
-                <span style={{ 
-                    padding: '0.3rem 0.6rem', 
-                    borderRadius: '12px', 
-                    fontSize: '0.8rem', 
-                    fontWeight: 700, 
-                    backgroundColor: p.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    color: p.isActive ? 'var(--secondary)' : 'var(--error)',
-                    display: 'inline-block'
-                }}>
+                <StatusBadge status={p.isActive ? 'Active' : 'Inactive'}>
                     {p.isActive ? 'Active' : 'Inactive'}
-                </span>
+                </StatusBadge>
             ),
         },
     ];
@@ -247,6 +244,7 @@ export default function ProductsPage() {
                         costPrice: 0,
                         unitPrice: 0,
                         reorderLevel: 0,
+                        isTaxable: true,
                         isActive: true
                     });
                     setShowModal(true);
@@ -265,7 +263,7 @@ export default function ProductsPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="glass animate-fade modal-card">
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Product' : 'Add New Product'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configure product details, category, and supplier matching.</p>
@@ -399,15 +397,26 @@ export default function ProductsPage() {
                                         onChange={(e) => setCurrentProduct({ ...currentProduct, reorderLevel: e.target.value === '' ? 0 : parseInt(e.target.value) })}
                                     />
                                 </div>
-                                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem' }}>
-                                    <input
-                                        type="checkbox"
-                                        id="isActive"
-                                        checked={currentProduct.isActive !== false}
-                                        onChange={(e) => setCurrentProduct({ ...currentProduct, isActive: e.target.checked })}
-                                        style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                                    />
-                                    <label htmlFor="isActive" className="form-label" style={{ margin: 0, cursor: 'pointer' }}>Is Active</label>
+                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.5rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={currentProduct.isTaxable !== false}
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, isTaxable: e.target.checked })}
+                                            style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)' }}
+                                        />
+                                        <span className="form-label" style={{ margin: 0 }}>VAT taxable (13%)</span>
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="isActive"
+                                            checked={currentProduct.isActive !== false}
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, isActive: e.target.checked })}
+                                            style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)' }}
+                                        />
+                                        <span className="form-label" style={{ margin: 0 }}>Is Active</span>
+                                    </label>
                                 </div>
                             </div>
                             

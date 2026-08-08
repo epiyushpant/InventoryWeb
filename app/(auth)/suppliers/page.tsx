@@ -7,6 +7,7 @@ import LookupTable, { Column } from '@/components/LookupTable';
 import AddressSelector from '@/components/AddressSelector';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import StatusBadge from '@/components/StatusBadge';
 
 interface Supplier {
     supplierID: number;
@@ -57,17 +58,9 @@ const columns: Column<Supplier>[] = [
     {
         header: 'Status',
         render: (sup) => (
-            <span style={{
-                fontSize: '0.75rem',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '100px',
-                background: sup.isActive ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                color: sup.isActive ? 'var(--secondary)' : 'var(--error)',
-                fontWeight: 700,
-                border: sup.isActive ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)'
-            }}>
+            <StatusBadge status={sup.isActive ? 'Active' : 'Inactive'}>
                 {sup.isActive ? 'Active' : 'Inactive'}
-            </span>
+            </StatusBadge>
         ),
     },
 ];
@@ -204,7 +197,7 @@ export default function SuppliersPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="glass animate-fade modal-card">
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Supplier' : 'New Supplier'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Update your supplier database.</p>

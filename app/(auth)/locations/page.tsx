@@ -186,7 +186,7 @@ export default function LocationsPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="glass animate-fade modal-card">
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Location' : 'Add Location'}</h2>
                             <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Define a new warehouse or storefront.</p>

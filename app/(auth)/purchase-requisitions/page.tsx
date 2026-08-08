@@ -5,6 +5,7 @@ import { productsApi, purchaseRequisitionsApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import StatusBadge from '@/components/StatusBadge';
 
 interface PurchaseRequisition {
     prid: number;
@@ -106,23 +107,12 @@ export default function PurchaseRequisitionsPage() {
         { header: 'Required Date', render: (r) => new Date(r.requiredDate).toLocaleDateString() },
         { 
             header: 'Status', 
-            render: (r) => (
-                <span style={{ 
-                    padding: '0.25rem 0.75rem', 
-                    borderRadius: '20px', 
-                    fontSize: '0.8rem', 
-                    fontWeight: 600,
-                    background: r.status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    color: r.status === 'Approved' ? 'var(--secondary)' : 'var(--warning)'
-                }}>
-                    {r.status}
-                </span>
-            ) 
+            render: (r) => <StatusBadge status={r.status}>{r.status}</StatusBadge>
         },
         {
             header: 'Actions',
             render: (r) => (
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <div className="table-actions">
                     {r.status === 'Pending' && (
                         <button 
                             className="btn btn-primary btn-small"
@@ -173,7 +163,7 @@ export default function PurchaseRequisitionsPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card">
+                    <div className="glass animate-fade modal-card">
                         <h2 className="auth-title">New Requisition</h2>
                         <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">

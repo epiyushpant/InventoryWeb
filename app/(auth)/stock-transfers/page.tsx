@@ -5,6 +5,7 @@ import { productsApi, locationsApi, stockTransfersApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import StatusBadge from '@/components/StatusBadge';
 
 interface StockTransfer {
     transferID: number;
@@ -106,18 +107,7 @@ export default function StockTransfersPage() {
         { header: 'To', render: (t) => locations.find(l => l.locationID === t.toLocationID)?.warehouseName || 'Unknown' },
         { 
             header: 'Status', 
-            render: (t) => (
-                <span style={{ 
-                    padding: '0.25rem 0.75rem', 
-                    borderRadius: '20px', 
-                    fontSize: '0.8rem', 
-                    fontWeight: 600,
-                    background: t.status === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(168, 85, 247, 0.1)',
-                    color: t.status === 'Completed' ? 'var(--secondary)' : 'var(--primary)'
-                }}>
-                    {t.status}
-                </span>
-            ) 
+            render: (t) => <StatusBadge status={t.status}>{t.status}</StatusBadge>
         },
     ];
 
@@ -150,7 +140,7 @@ export default function StockTransfersPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card">
+                    <div className="glass animate-fade modal-card">
                         <h2 className="auth-title">Initiate Transfer</h2>
                         <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">

@@ -5,6 +5,13 @@ import { purchaseOrdersApi, suppliersApi, productsApi, purchaseRequisitionsApi }
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import WorkflowStrip from '@/components/WorkflowStrip';
+import LockedBanner from '@/components/LockedBanner';
+import StatusBadge from '@/components/StatusBadge';
+import MoneyCell from '@/components/MoneyCell';
+import { formatNpr } from '@/lib/format';
+import { formatAdBs } from '@/lib/nepali-date';
+import { isDocumentEditable, lockReason } from '@/lib/documentLock';
 
 interface PurchaseOrderDetail {
     productID: number;
@@ -41,12 +48,13 @@ export default function PurchaseOrdersPage() {
         supplierID: 0,
         orderDate: new Date().toISOString().split('T')[0],
         totalAmount: 0,
-        status: 'Pending',
+        status: 'Draft',
         prid: undefined,
         purchaseOrderDetails: []
     });
     const [showModal, setShowModal] = useState(false);
     const { validationErrors, validateAndSubmit, handleApiError } = useFormValidation();
+    const poLocked = isEditing && !isDocumentEditable('PurchaseOrder', currentOrder.status);
 
     useEffect(() => {
         loadInitialData();
@@ -87,6 +95,7 @@ export default function PurchaseOrdersPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (poLocked) return;
         setLoading(true);
         setError('');
         try {
@@ -103,13 +112,15 @@ export default function PurchaseOrdersPage() {
                 supplierID: suppliers.length > 0 ? suppliers[0].supplierID : 0,
                 orderDate: new Date().toISOString().split('T')[0],
                 totalAmount: 0,
-                status: 'Pending',
-                prid: undefined
+                status: 'Draft',
+                prid: undefined,
+                purchaseOrderDetails: []
             });
             setIsEditing(false);
             await loadOrders();
         } catch (err: any) {
             handleApiError(err);
+            setError(err.message || 'Save failed');
         } finally {
             setLoading(false);
         }
@@ -125,6 +136,10 @@ export default function PurchaseOrdersPage() {
     };
 
     const handleDelete = async (order: PurchaseOrder) => {
+        if (!isDocumentEditable('PurchaseOrder', order.status)) {
+            alert(lockReason('PurchaseOrder', order.status));
+            return;
+        }
         if (!confirm('Are you sure you want to delete this purchase order?')) return;
         try {
             await purchaseOrdersApi.delete(order.purchaseOrderID);
@@ -158,48 +173,22 @@ export default function PurchaseOrdersPage() {
             header: 'Order Date',
             render: (o) => (
                 <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                    {o.orderDate ? new Date(o.orderDate).toLocaleDateString() : '-'}
+                    {formatAdBs(o.orderDate)}
                 </span>
             ),
         },
         {
             header: 'Total Amount',
-            render: (o) => (
-                <span style={{ fontWeight: 600, color: 'var(--secondary)' }}>
-                    Rs. {o.totalAmount?.toFixed(2) || '0.00'}
-                </span>
-            ),
+            align: 'right',
+            numeric: true,
+            sortValue: (o) => o.totalAmount ?? 0,
+            render: (o) => <MoneyCell amount={o.totalAmount} strong />,
         },
         {
             header: 'Status',
-            render: (o) => {
-                let color = 'var(--text-main)';
-                let bg = 'rgba(255, 255, 255, 0.1)';
-                if (o.status?.toLowerCase() === 'completed' || o.status?.toLowerCase() === 'received') {
-                    color = 'var(--secondary)';
-                    bg = 'rgba(16, 185, 129, 0.1)';
-                } else if (o.status?.toLowerCase() === 'pending') {
-                    color = '#f59e0b';
-                    bg = 'rgba(245, 158, 11, 0.1)';
-                } else if (o.status?.toLowerCase() === 'cancelled') {
-                    color = 'var(--error)';
-                    bg = 'rgba(239, 68, 68, 0.1)';
-                }
-
-                return (
-                    <span style={{ 
-                        padding: '0.3rem 0.6rem', 
-                        borderRadius: '12px', 
-                        fontSize: '0.8rem', 
-                        fontWeight: 700, 
-                        backgroundColor: bg,
-                        color: color,
-                        display: 'inline-block'
-                    }}>
-                        {o.status || 'Pending'}
-                    </span>
-                );
-            },
+            render: (o) => (
+                <StatusBadge status={o.status || 'Pending'}>{o.status || 'Pending'}</StatusBadge>
+            ),
         },
     ];
 
@@ -215,7 +204,7 @@ export default function PurchaseOrdersPage() {
                         supplierID: suppliers.length > 0 ? suppliers[0].supplierID : 0,
                         orderDate: new Date().toISOString().split('T')[0],
                         totalAmount: 0,
-                        status: 'Pending',
+                        status: 'Draft',
                         prid: undefined,
                         purchaseOrderDetails: []
                     });
@@ -235,13 +224,22 @@ export default function PurchaseOrdersPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+                    <div className="glass animate-fade modal-card">
+                        <WorkflowStrip
+                            steps={[
+                                { label: 'PR', href: '/purchase-requisitions', done: !!currentOrder.prid },
+                                { label: 'PO', active: true },
+                                { label: 'GRN', href: '/grns' },
+                            ]}
+                        />
+                        {poLocked && <LockedBanner message={lockReason('PurchaseOrder', currentOrder.status)} />}
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title" style={{ fontSize: '2rem', margin: 0 }}>{isEditing ? 'Edit Purchase Order' : 'Create Purchase Order'}</h2>
-                            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Configure purchase order details.</p>
+                            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Header + lines in one voucher.</p>
                         </div>
 
                         <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
+                            <fieldset disabled={poLocked} style={{ border: 'none', padding: 0, margin: 0 }}>
                             <div className="form-grid form-grid-2">
                                 <div className="form-group">
                                     <label className="form-label">Purchase Requisition (Optional)</label>
@@ -275,7 +273,7 @@ export default function PurchaseOrdersPage() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Order Date</label>
+                                    <label className="form-label">Order Date (AD)</label>
                                     <input
                                         type="date"
                                         className="form-input"
@@ -284,6 +282,9 @@ export default function PurchaseOrdersPage() {
                                         onChange={(e) => setCurrentOrder({ ...currentOrder, orderDate: e.target.value })}
                                         style={{ colorScheme: 'dark' }}
                                     />
+                                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        {formatAdBs(currentOrder.orderDate as string)}
+                                    </p>
                                 </div>
                             </div>
 
@@ -404,6 +405,7 @@ export default function PurchaseOrdersPage() {
                                         onChange={(e) => setCurrentOrder({ ...currentOrder, status: e.target.value })}
                                         style={{ appearance: 'none', backgroundImage: 'linear-gradient(45deg, transparent 50%, var(--primary) 50%), linear-gradient(135deg, var(--primary) 50%, transparent 50%)', backgroundPosition: 'calc(100% - 20px) calc(1em + 2px), calc(100% - 15px) calc(1em + 2px)', backgroundSize: '5px 5px, 5px 5px', backgroundRepeat: 'no-repeat' }}
                                     >
+                                        <option value="Draft" style={{ background: 'var(--bg-dark)', color: 'var(--text-main)' }}>Draft</option>
                                         <option value="Pending" style={{ background: 'var(--bg-dark)', color: 'var(--text-main)' }}>Pending</option>
                                         <option value="Completed" style={{ background: 'var(--bg-dark)', color: 'var(--text-main)' }}>Completed</option>
                                         <option value="Cancelled" style={{ background: 'var(--bg-dark)', color: 'var(--text-main)' }}>Cancelled</option>
@@ -412,16 +414,17 @@ export default function PurchaseOrdersPage() {
                                 <div className="form-group" style={{ display: 'grid', gap: '0.35rem' }}>
                                     <label className="form-label">Estimated Total</label>
                                     <div className="form-input" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', fontWeight: 700, color: 'var(--primary)' }}>
-                                        Rs. {(currentOrder.purchaseOrderDetails || []).reduce((sum, item) => sum + (item.orderedQuantity * item.unitPrice), 0).toFixed(2)}
+                                        {formatNpr((currentOrder.purchaseOrderDetails || []).reduce((sum, item) => sum + (item.orderedQuantity * item.unitPrice), 0))}
                                     </div>
                                 </div>
                             </div>
+                            </fieldset>
 
                             <FormErrors errors={validationErrors} />
                             <div className="form-actions">
                                 <button type="button" className="btn btn-secondary btn-block" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-success btn-block" disabled={loading}>
-                                    {loading ? 'Processing...' : (isEditing ? 'Save Details' : 'Create Order')}
+                                <button type="submit" className="btn btn-success btn-block" disabled={loading || poLocked}>
+                                    {poLocked ? 'View only' : loading ? 'Processing...' : (isEditing ? 'Save Details' : 'Create Order')}
                                 </button>
                             </div>
                         </form>

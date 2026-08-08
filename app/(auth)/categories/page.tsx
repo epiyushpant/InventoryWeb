@@ -5,6 +5,7 @@ import { categoriesApi } from '@/lib/api';
 import LookupTable, { Column } from '@/components/LookupTable';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import FormErrors from '@/components/FormErrors';
+import StatusBadge from '@/components/StatusBadge';
 
 const BUSINESS_TEMPLATES: Record<string, string[]> = {
     'Restaurant / Cafe': ['Food', 'Beverages', 'Spices', 'Ingredients', 'Utensils', 'Packaging', 'Dairy Products', 'Meat & Poultry', 'Seafood', 'Bakery & Desserts'],
@@ -56,9 +57,9 @@ const columns: Column<Category>[] = [
     {
         header: 'Status',
         render: (cat) => (
-            <span className={`badge-pill ${cat.isActive ? 'active' : 'inactive'}`}>
+            <StatusBadge status={cat.isActive ? 'Active' : 'Inactive'}>
                 {cat.isActive ? 'Active' : 'Inactive'}
-            </span>
+            </StatusBadge>
         ),
     },
 ];
@@ -247,7 +248,7 @@ export default function CategoriesPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card">
+                    <div className="glass animate-fade modal-card">
                         <div style={{ marginBottom: '2.5rem' }}>
                             <h2 className="auth-title modal-title">{isEditing ? 'Edit Category' : 'New Category'}</h2>
                             <p className="modal-description">Configure the classification for your inventory assets.</p>
@@ -316,7 +317,7 @@ export default function CategoriesPage() {
 
             {showTemplateModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card" style={{ maxWidth: '600px' }}>
+                    <div className="glass animate-fade modal-card" style={{ maxWidth: '600px' }}>
                         <div style={{ marginBottom: '1.5rem' }}>
                             <h2 className="auth-title modal-title">Load Templates</h2>
                             <p className="modal-description">Select your business types to automatically generate related categories.</p>

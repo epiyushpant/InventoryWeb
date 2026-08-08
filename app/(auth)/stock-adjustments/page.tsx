@@ -133,7 +133,7 @@ export default function StockAdjustmentsPage() {
 
             {showModal && (
                 <div className="modal-backdrop">
-                    <div className="auth-card glass animate-fade modal-card">
+                    <div className="glass animate-fade modal-card">
                         <h2 className="auth-title">Create Adjustment</h2>
                         <form onSubmit={(e) => validateAndSubmit(e, handleSubmit)} noValidate>
                             <div className="form-group">

@@ -71,6 +71,16 @@ export function toNepaliDateString(adDateInput: string | Date | null): string {
     return `${bsYear}-${mm}-${dd} BS`;
 }
 
+/** Dual display: AD local date + BS string */
+export function formatAdBs(adDateInput: string | Date | null | undefined): string {
+    if (!adDateInput) return '—';
+    const adDate = new Date(adDateInput);
+    if (isNaN(adDate.getTime())) return '—';
+    const ad = adDate.toLocaleDateString('en-GB');
+    const bs = toNepaliDateString(adDate);
+    return `${ad} · ${bs}`;
+}
+
 export const nepaliMonths = [
     'Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin',
     'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'
